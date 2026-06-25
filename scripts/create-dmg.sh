@@ -37,8 +37,9 @@ hdiutil create -volname "MacBrowser" -srcfolder "$STAGING_DIR" -ov -format UDRW 
 
 hdiutil attach -readwrite -noverify -noautoopen "$DMG_NAME" >/dev/null
 
-if [ -f "$BACKGROUND_SRC" ]; then
-    osascript <<'EOF'
+customize_dmg() {
+    if [ -f "$BACKGROUND_SRC" ]; then
+        osascript <<'EOF'
 tell application "Finder"
   tell disk "MacBrowser"
     open
@@ -57,8 +58,8 @@ tell application "Finder"
   end tell
 end tell
 EOF
-else
-    osascript <<'EOF'
+    else
+        osascript <<'EOF'
 tell application "Finder"
   tell disk "MacBrowser"
     open
@@ -75,6 +76,12 @@ tell application "Finder"
   end tell
 end tell
 EOF
+    fi
+}
+
+if ! customize_dmg; then
+    echo "Warning: DMG window layout skipped (grant Finder automation access in System Settings)" >&2
+    hdiutil detach "$MOUNT_DIR" 2>/dev/null || true
 fi
 
 hdiutil detach "$MOUNT_DIR" 2>/dev/null || true

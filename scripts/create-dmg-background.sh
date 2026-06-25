@@ -6,7 +6,13 @@ OUTPUT_DIR="scripts/.dmg-resources"
 mkdir -p "$OUTPUT_DIR"
 BACKGROUND_PNG="$OUTPUT_DIR/dmg-background.png"
 
-python3 - "$BACKGROUND_PNG" <<'PYTHON'
+if [ -x ".venv/bin/python3" ]; then
+    PYTHON=".venv/bin/python3"
+else
+    PYTHON="python3"
+fi
+
+"$PYTHON" - "$BACKGROUND_PNG" <<'PYTHON'
 import sys
 
 try:
