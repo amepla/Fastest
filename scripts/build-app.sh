@@ -20,7 +20,9 @@ fi
 
 BUILD_NUMBER="${BUILD_NUMBER:-$(git rev-list --count HEAD 2>/dev/null || echo 0)}"
 
-"$(dirname "$0")/generate-app-icon.sh"
+if [ ! -f "$ICON_SOURCE" ]; then
+    "$(dirname "$0")/generate-app-icon.sh"
+fi
 
 mkdir -p "$CONTENTS/MacOS" "$RESOURCES"
 clang++ -std=c++17 -ObjC++ -fobjc-arc -Wall -Wextra \
