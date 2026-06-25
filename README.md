@@ -2,8 +2,7 @@
 
 MacBrowser is a minimal native macOS browser prototype implemented with Objective-C++ and WebKit (`WKWebView`). It demonstrates a compact, premium-styled UI and provides a foundation for features like tabs, bookmarks and history.
 
-Features
---------
+## Features
 
 - Dark, restrained UI focused on hierarchy and readability
 - Controls: `Home`, `Back`, `Forward`, `Reload`
@@ -11,8 +10,7 @@ Features
 - Built-in styled home page (landing) for presentation and testing
 - JavaScript enabled in `WKWebView`, back/forward gestures supported
 
-Quick start (build & run)
--------------------------
+## Quick start (build & run)
 
 Open a terminal in the project directory and run:
 
@@ -29,8 +27,22 @@ Run the binary:
 ./MacBrowser
 ```
 
-Project layout
---------------
+## Build a macOS app bundle
+
+To make the app launchable by double-clicking its icon, build the `.app` bundle:
+
+```bash
+cd "/Users/hyoma/Documents/mac browser"
+./scripts/build-app.sh
+```
+
+The result will be `MacBrowser.app`. Open it in Finder or run it from Terminal:
+
+```bash
+open MacBrowser.app
+```
+
+## Project layout
 
 - `src/main.mm` — application entry point
 - `src/BrowserApp.h` — application class declaration
@@ -39,8 +51,7 @@ Project layout
 - `CMakeLists.txt` — optional CMake support
 - `.gitignore`, `LICENSE`, `README.md`
 
-Contributing
-------------
+## Contributing
 
 Contributions are welcome. Suggested workflow:
 
@@ -49,12 +60,10 @@ Contributions are welcome. Suggested workflow:
 3. Make changes, build and test locally
 4. Push and open a pull request with a descriptive title and summary
 
-License
--------
+## License
 
 This project is released under the MIT License. See the `LICENSE` file for details.
 
-Contact
--------
+## Contact
 
 If you'd like, I can add GitHub Actions for automated macOS builds, enable GitHub Pages for screenshots/docs, or implement tab/bookmark support inside the app — tell me which you'd prefer next.
