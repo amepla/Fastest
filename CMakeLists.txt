@@ -27,3 +27,9 @@ set_target_properties(MacBrowser PROPERTIES
     MACOSX_BUNDLE_SHORT_VERSION_STRING "0.0.0-dev"
     MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/resources/Info.plist"
 )
+
+add_custom_command(TARGET MacBrowser POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_CURRENT_SOURCE_DIR}/resources/home.html"
+        "$<TARGET_BUNDLE_DIR:MacBrowser>/Contents/Resources/home.html"
+)
