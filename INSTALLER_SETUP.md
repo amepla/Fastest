@@ -29,7 +29,7 @@ Use the prompt in `LOGO_PROMPT.txt` to generate a premium logo via:
 3. Copy the resulting `.icns` file to the app resources:
 
 ```bash
-cp MacBrowser-logo.icns MacBrowser.app/Contents/Resources/AppIcon.icns
+cp MacBrowser-logo.icns resources/AppIcon.icns
 ```
 
 4. Rebuild the app to apply the icon:
@@ -43,35 +43,46 @@ cp MacBrowser-logo.icns MacBrowser.app/Contents/Resources/AppIcon.icns
 Once you have a logo (even a placeholder), create the DMG:
 
 ```bash
+pip3 install pillow   # required for DMG background
 ./scripts/create-dmg-background.sh
-./scripts/create-dmg.sh
+./scripts/create-dmg.sh v0.3
 ```
 
-This produces `MacBrowser-v0.2.dmg` with:
+This produces `MacBrowser-v0.3.dmg` with:
 
 - Drag-and-drop installation interface
 - Instructions for handling macOS quarantine warning
-- Professional layout with custom background
+- Professional layout with custom background (when Pillow is installed)
 
-## Step 3: Distribute
+## Step 3: Publish via GitHub CLI
 
-Upload the DMG to GitHub Releases:
+All releases are published through `gh`:
 
 ```bash
-gh release upload v0.2 MacBrowser-v0.2.dmg
+gh auth login
+./scripts/release.sh v0.3
 ```
 
-Users can now:
+The script will:
 
-1. Download the `.dmg` file
-2. Open it and drag `MacBrowser.app` to `Applications`
-3. If they see "damaged" error, they'll see clear instructions in the DMG
+1. Build the DMG background and installer
+2. Create a GitHub Release (or upload to an existing one)
+3. Attach `MacBrowser-v0.3.dmg` as a release asset
+
+### CI alternative
+
+Push a tag to trigger automated release:
+
+```bash
+git tag v0.3
+git push origin v0.3
+```
 
 ## Troubleshooting
 
-### "ImageMagick not found"
+### Pillow not installed
 
-The `create-dmg-background.sh` script uses Python with PIL (Pillow). Install it:
+The `create-dmg-background.sh` script uses Python with Pillow:
 
 ```bash
 pip3 install pillow
@@ -79,19 +90,19 @@ pip3 install pillow
 
 ### Icon not showing in Finder
 
-- Ensure the `.icns` file is copied to `MacBrowser.app/Contents/Resources/AppIcon.icns`
-- Rebuild the app and clear Finder cache: `killall Finder`
+- Ensure `resources/AppIcon.icns` exists before running `./scripts/build-app.sh`
+- Clear Finder cache: `killall Finder`
 
 ### DMG creation fails
 
 Some versions of macOS require `hdiutil` permissions. Run with:
 
 ```bash
-sudo ./scripts/create-dmg.sh
+sudo ./scripts/create-dmg.sh v0.3
 ```
 
 ## Next Steps
 
-- Add a custom color scheme in `.app` Info.plist
+- Add a custom color scheme in `resources/Info.plist`
 - Create a website (GitHub Pages) with screenshots
-- Set up GitHub Actions for automated builds
+- Releases are automated via `.github/workflows/release.yml`

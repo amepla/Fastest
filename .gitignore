@@ -27,3 +27,4 @@ Makefile
 .env.*
 MacBrowser.app
 releases/
+*.dmg

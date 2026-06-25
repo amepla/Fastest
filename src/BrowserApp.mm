@@ -2,13 +2,14 @@
 #import <Cocoa/Cocoa.h>
 #import <WebKit/WebKit.h>
 
-@interface BrowserWindowController : NSWindowController <WKNavigationDelegate, NSTextFieldDelegate>
+@interface BrowserWindowController : NSWindowController <WKNavigationDelegate, NSTextFieldDelegate, NSWindowDelegate>
 @property (nonatomic, strong) WKWebView *webView;
 @property (nonatomic, strong) NSTextField *addressField;
 @property (nonatomic, strong) NSButton *backButton;
 @property (nonatomic, strong) NSButton *forwardButton;
 @property (nonatomic, strong) NSButton *reloadButton;
 @property (nonatomic, strong) NSButton *homeButton;
+@property (nonatomic, assign) BOOL onHomePage;
 @end
 
 @implementation BrowserWindowController
@@ -65,6 +66,7 @@
     NSWindow *window = self.window;
     NSView *contentView = window.contentView;
     window.backgroundColor = [NSColor colorWithWhite:0.04 alpha:1.0];
+    window.delegate = self;
     [window setTitle:@"MacBrowser"];
     [window center];
     [window makeKeyAndOrderFront:nil];
@@ -153,11 +155,34 @@
     return NO;
 }
 
+- (BOOL)looksLikeURL:(NSString *)input {
+    if ([input containsString:@"://"]) {
+        return YES;
+    }
+    if ([input rangeOfCharacterFromSet:[NSCharacterSet whitespaceCharacterSet]].location != NSNotFound) {
+        return NO;
+    }
+    if ([input containsString:@"."] && ![input hasPrefix:@"."]) {
+        return YES;
+    }
+    return NO;
+}
+
+- (void)updateNavigationButtons {
+    if (self.onHomePage) {
+        self.backButton.enabled = NO;
+        self.forwardButton.enabled = NO;
+        return;
+    }
+    self.backButton.enabled = self.webView.canGoBack;
+    self.forwardButton.enabled = self.webView.canGoForward;
+}
+
 - (void)goHome:(id)sender {
+    self.onHomePage = YES;
     [self.webView loadHTMLString:[self homeHTML] baseURL:nil];
     self.addressField.stringValue = @"";
-    self.backButton.enabled = NO;
-    self.forwardButton.enabled = NO;
+    [self updateNavigationButtons];
 }
 
 - (void)loadAddress:(NSString *)address {
@@ -166,19 +191,25 @@
         return;
     }
 
-    if (![urlString containsString:@"://"]) {
-        urlString = [@"https://" stringByAppendingString:urlString];
+    if ([self looksLikeURL:urlString]) {
+        if (![urlString containsString:@"://"]) {
+            urlString = [@"https://" stringByAppendingString:urlString];
+        }
+    } else {
+        NSString *encoded = [urlString stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]];
+        urlString = [NSString stringWithFormat:@"https://duckduckgo.com/?q=%@", encoded ?: urlString];
     }
 
     NSURL *url = [NSURL URLWithString:urlString];
     if (!url) {
         NSAlert *alert = [[NSAlert alloc] init];
         alert.messageText = @"Invalid URL";
-        alert.informativeText = @"Please enter a valid web address.";
+        alert.informativeText = @"Please enter a valid web address or search query.";
         [alert runModal];
         return;
     }
 
+    self.onHomePage = NO;
     NSURLRequest *request = [NSURLRequest requestWithURL:url];
     [self.webView loadRequest:request];
 }
@@ -196,22 +227,43 @@
 }
 
 - (void)reloadPage:(id)sender {
+    if (self.onHomePage) {
+        [self goHome:sender];
+        return;
+    }
     [self.webView reload];
 }
 
 - (void)webView:(WKWebView *)webView didFinishNavigation:(WKNavigation *)navigation {
-    NSString *currentURL = webView.URL.absoluteString ?: @"";
-    self.addressField.stringValue = currentURL;
-    self.backButton.enabled = webView.canGoBack;
-    self.forwardButton.enabled = webView.canGoForward;
+    NSString *currentURL = webView.URL.absoluteString;
+    if (currentURL == nil || [currentURL isEqualToString:@"about:blank"]) {
+        self.onHomePage = YES;
+        self.addressField.stringValue = @"";
+    } else if (!self.onHomePage) {
+        self.addressField.stringValue = currentURL;
+    }
+    [self updateNavigationButtons];
+}
+
+- (void)webView:(WKWebView *)webView didFailNavigation:(WKNavigation *)navigation withError:(NSError *)error {
+    if (error.code == NSURLErrorCancelled) {
+        return;
+    }
+    [self updateNavigationButtons];
+}
+
+- (void)windowWillClose:(NSNotification *)notification {
+    [NSApp terminate:nil];
 }
 
 @end
 
-int BrowserApp::run(int argc, const char * argv[]) {
+int BrowserApp::run(int /*argc*/, const char * /*argv*/[]) {
     @autoreleasepool {
         NSApplication *app = [NSApplication sharedApplication];
-        BrowserWindowController *controller = [[BrowserWindowController alloc] init];
+        static __strong BrowserWindowController *windowController = nil;
+        windowController = [[BrowserWindowController alloc] init];
+        (void)windowController;
 
         [app setActivationPolicy:NSApplicationActivationPolicyRegular];
         [app activateIgnoringOtherApps:YES];

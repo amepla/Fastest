@@ -14,7 +14,7 @@ MacBrowser is a minimal native macOS browser prototype implemented with Objectiv
 
 The easiest way to install MacBrowser is via the DMG installer:
 
-1. Download `MacBrowser-v0.2.dmg` from [Releases](https://github.com/amepla/Fastest/releases)
+1. Download the latest `MacBrowser-v*.dmg` from [Releases](https://github.com/amepla/Fastest/releases)
 2. Open the DMG file
 3. Drag `MacBrowser.app` to the `Applications` folder
 4. Open `Applications` → `MacBrowser` to launch
@@ -26,10 +26,7 @@ If you see "MacBrowser.app is damaged" error, see [Troubleshooting](#troubleshoo
 Open a terminal in the project directory and run:
 
 ```bash
-cd "$(pwd)"
 ./scripts/build.sh
-# or directly:
-clang++ -std=c++17 -ObjC++ src/main.mm src/BrowserApp.mm -framework Cocoa -framework WebKit -o MacBrowser
 ```
 
 Run the binary:
@@ -43,7 +40,6 @@ Run the binary:
 To make the app launchable by double-clicking its icon, build the `.app` bundle from the project root:
 
 ```bash
-cd "$(pwd)"
 ./scripts/build-app.sh
 ```
 
@@ -52,6 +48,35 @@ The result will be `MacBrowser.app`. Open it in Finder or run it from Terminal:
 ```bash
 open MacBrowser.app
 ```
+
+## Release & deploy (GitHub CLI)
+
+Publishing a release is handled entirely through the [GitHub CLI](https://cli.github.com/):
+
+```bash
+# one-time setup
+gh auth login
+
+# build DMG and publish to GitHub Releases
+./scripts/release.sh v0.3
+```
+
+Optional: pass a custom notes file as the second argument:
+
+```bash
+./scripts/release.sh v0.3 RELEASE_NOTES.md
+```
+
+### Automated CI release
+
+Pushing a version tag also triggers a GitHub Actions workflow that builds the DMG and publishes it with `gh`:
+
+```bash
+git tag v0.3
+git push origin v0.3
+```
+
+Or run the workflow manually from the Actions tab (`workflow_dispatch`).
 
 ## Troubleshooting: "MacBrowser.app is damaged"
 
@@ -75,7 +100,12 @@ open MacBrowser.app
 - `src/main.mm` — application entry point
 - `src/BrowserApp.h` — application class declaration
 - `src/BrowserApp.mm` — UI implementation and WebKit integration
+- `resources/Info.plist` — bundle metadata for CMake builds
 - `scripts/build.sh` — convenience build script
+- `scripts/build-app.sh` — build `.app` bundle
+- `scripts/create-dmg.sh` — create versioned DMG installer
+- `scripts/release.sh` — build and publish via `gh release`
+- `.github/workflows/release.yml` — CI release on tag push
 - `CMakeLists.txt` — optional CMake support
 - `.gitignore`, `LICENSE`, `README.md`
 
@@ -91,7 +121,3 @@ Contributions are welcome. Suggested workflow:
 ## License
 
 This project is released under the MIT License. See the `LICENSE` file for details.
-
-## Contact
-
-If you'd like, I can add GitHub Actions for automated macOS builds, enable GitHub Pages for screenshots/docs, or implement tab/bookmark support inside the app — tell me which you'd prefer next.

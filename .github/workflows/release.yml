@@ -1,0 +1,56 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (e.g. v0.3)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve tag
+        id: meta
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            RAW="${{ inputs.tag }}"
+          else
+            RAW="${{ github.ref_name }}"
+          fi
+          RAW="${RAW#v}"
+          echo "tag=v${RAW}" >> "$GITHUB_OUTPUT"
+          echo "dmg=MacBrowser-v${RAW}.dmg" >> "$GITHUB_OUTPUT"
+
+      - name: Install Pillow
+        run: pip3 install pillow
+
+      - name: Build DMG
+        run: |
+          ./scripts/create-dmg-background.sh
+          ./scripts/create-dmg.sh "${{ steps.meta.outputs.tag }}"
+
+      - name: Publish release with gh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ steps.meta.outputs.tag }}"
+          DMG="${{ steps.meta.outputs.dmg }}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$DMG" --clobber
+          else
+            gh release create "$TAG" "$DMG" \
+              --title "MacBrowser ${TAG}" \
+              --generate-notes
+          fi
