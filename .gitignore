@@ -26,3 +26,4 @@ Makefile
 .env
 .env.*
 MacBrowser.app
+releases/
