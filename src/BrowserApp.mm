@@ -67,6 +67,7 @@
     window.backgroundColor = [NSColor colorWithWhite:0.04 alpha:1.0];
     [window setTitle:@"MacBrowser"];
     [window center];
+    [window makeKeyAndOrderFront:nil];
 
     CGFloat toolbarHeight = 60;
     NSView *toolbar = [[NSView alloc] initWithFrame:NSMakeRect(0, contentView.bounds.size.height - toolbarHeight, contentView.bounds.size.width, toolbarHeight)];
@@ -132,7 +133,9 @@
 
     NSRect webFrame = NSMakeRect(0, 0, contentView.bounds.size.width, contentView.bounds.size.height - toolbarHeight);
     WKWebViewConfiguration *config = [[WKWebViewConfiguration alloc] init];
-    config.preferences.javaScriptEnabled = YES;
+    WKWebpagePreferences *preferences = [[WKWebpagePreferences alloc] init];
+    preferences.allowsContentJavaScript = YES;
+    config.defaultWebpagePreferences = preferences;
     self.webView = [[WKWebView alloc] initWithFrame:webFrame configuration:config];
     self.webView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
     self.webView.navigationDelegate = self;
