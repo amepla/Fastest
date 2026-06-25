@@ -2,20 +2,32 @@
 #import <Cocoa/Cocoa.h>
 #import <WebKit/WebKit.h>
 
+static NSString * const kSearchHost = @"duckduckgo.com";
+static NSString * const kStartPageURLString = @"https://duckduckgo.com/";
+
 static NSColor *MBColorInk(void) {
     return [NSColor colorWithCalibratedRed:6.0 / 255.0 green:6.0 / 255.0 blue:6.0 / 255.0 alpha:1.0];
 }
 
 static NSColor *MBColorSurface(void) {
-    return [NSColor colorWithCalibratedRed:18.0 / 255.0 green:18.0 / 255.0 blue:18.0 / 255.0 alpha:1.0];
+    return [NSColor colorWithCalibratedRed:14.0 / 255.0 green:14.0 / 255.0 blue:14.0 / 255.0 alpha:0.92];
 }
 
 static NSColor *MBColorCream(void) {
     return [NSColor colorWithCalibratedRed:244.0 / 255.0 green:239.0 / 255.0 blue:230.0 / 255.0 alpha:1.0];
 }
 
+static NSColor *MBColorCopper(void) {
+    return [NSColor colorWithCalibratedRed:201.0 / 255.0 green:162.0 / 255.0 blue:122.0 / 255.0 alpha:1.0];
+}
+
 static NSColor *MBColorStone(void) {
     return [NSColor colorWithCalibratedRed:154.0 / 255.0 green:143.0 / 255.0 blue:130.0 / 255.0 alpha:1.0];
+}
+
+static NSURL *MBSearchURL(NSString *query) {
+    NSString *encoded = [query stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]];
+    return [NSURL URLWithString:[NSString stringWithFormat:@"https://duckduckgo.com/?q=%@", encoded ?: @""]];
 }
 
 @interface BrowserWindowController : NSWindowController <WKNavigationDelegate, NSTextFieldDelegate, NSWindowDelegate>
@@ -25,7 +37,6 @@ static NSColor *MBColorStone(void) {
 @property (nonatomic, strong) NSButton *forwardButton;
 @property (nonatomic, strong) NSButton *reloadButton;
 @property (nonatomic, strong) NSButton *homeButton;
-@property (nonatomic, assign) BOOL onHomePage;
 @end
 
 @implementation BrowserWindowController
@@ -53,7 +64,7 @@ static NSColor *MBColorStone(void) {
 
     NSMenuItem *navMenuItem = [[NSMenuItem alloc] init];
     NSMenu *navMenu = [[NSMenu alloc] initWithTitle:@"Navigate"];
-    [navMenu addItemWithTitle:@"Home" action:@selector(goHome:) keyEquivalent:@"h"];
+    [navMenu addItemWithTitle:@"Start Page" action:@selector(goHome:) keyEquivalent:@"h"];
     [[navMenu itemAtIndex:0] setKeyEquivalentModifierMask:NSEventModifierFlagCommand | NSEventModifierFlagShift];
     [navMenu addItemWithTitle:@"Back" action:@selector(goBack:) keyEquivalent:@"["];
     [navMenu addItemWithTitle:@"Forward" action:@selector(goForward:) keyEquivalent:@"]"];
@@ -66,92 +77,96 @@ static NSColor *MBColorStone(void) {
     [NSApp setMainMenu:mainMenu];
 }
 
-- (NSButton *)makeToolbarButtonWithTitle:(NSString *)title action:(SEL)action x:(CGFloat)x y:(CGFloat)y width:(CGFloat)width height:(CGFloat)height inView:(NSView *)toolbar {
-    NSButton *button = [[NSButton alloc] initWithFrame:NSMakeRect(x, y, width, height)];
-    button.title = title;
-    button.bezelStyle = NSBezelStyleRoundRect;
-    button.font = [NSFont systemFontOfSize:12 weight:NSFontWeightSemibold];
+- (NSImage *)symbolImage:(NSString *)name pointSize:(CGFloat)size {
+    NSImageSymbolConfiguration *config = [NSImageSymbolConfiguration configurationWithPointSize:size weight:NSFontWeightMedium];
+    NSImage *image = [NSImage imageWithSystemSymbolName:name accessibilityDescription:nil];
+    return [image imageWithSymbolConfiguration:config];
+}
+
+- (NSButton *)makeSymbolButton:(NSString *)symbol toolTip:(NSString *)toolTip action:(SEL)action frame:(NSRect)frame inView:(NSView *)view {
+    NSButton *button = [[NSButton alloc] initWithFrame:frame];
+    button.image = [self symbolImage:symbol pointSize:15];
+    button.imagePosition = NSImageOnly;
+    button.bezelStyle = NSBezelStyleTexturedRounded;
+    button.bordered = NO;
     button.contentTintColor = MBColorCream();
+    button.toolTip = toolTip;
     button.target = self;
     button.action = action;
-    [toolbar addSubview:button];
+    [view addSubview:button];
     return button;
 }
 
-- (NSString *)homeHTML {
-    NSBundle *bundle = [NSBundle mainBundle];
-    NSString *bundlePath = [bundle pathForResource:@"home" ofType:@"html"];
-    if (bundlePath) {
-        NSError *error = nil;
-        NSString *html = [NSString stringWithContentsOfFile:bundlePath encoding:NSUTF8StringEncoding error:&error];
-        if (html) {
-            return html;
-        }
+- (BOOL)isOnStartPage {
+    NSURL *url = self.webView.URL;
+    if (!url) {
+        return NO;
     }
-
-    NSString *devPath = [[[NSFileManager defaultManager] currentDirectoryPath]
-        stringByAppendingPathComponent:@"resources/home.html"];
-    if ([[NSFileManager defaultManager] fileExistsAtPath:devPath]) {
-        return [NSString stringWithContentsOfFile:devPath encoding:NSUTF8StringEncoding error:nil] ?: @"";
+    NSString *host = url.host.lowercaseString;
+    if (![host isEqualToString:kSearchHost]) {
+        return NO;
     }
-
-    return @"<!DOCTYPE html><html><body style='background:#060606;color:#f4efe6;font-family:serif;padding:2rem'><h1>MacBrowser</h1><p>resources/home.html not found.</p></body></html>";
-}
-
-- (NSURL *)homeBaseURL {
-    NSString *bundlePath = [[NSBundle mainBundle] pathForResource:@"home" ofType:@"html"];
-    if (bundlePath) {
-        return [NSURL fileURLWithPath:[bundlePath stringByDeletingLastPathComponent] isDirectory:YES];
-    }
-    NSString *devPath = [[[NSFileManager defaultManager] currentDirectoryPath]
-        stringByAppendingPathComponent:@"resources"];
-    return [NSURL fileURLWithPath:devPath isDirectory:YES];
+    NSString *path = url.path.length > 0 ? url.path : @"/";
+    return [path isEqualToString:@"/"] && (url.query.length == 0);
 }
 
 - (void)setupUI {
     NSWindow *window = self.window;
     NSView *contentView = window.contentView;
     window.backgroundColor = MBColorInk();
+    window.titlebarAppearsTransparent = YES;
+    window.styleMask |= NSWindowStyleMaskFullSizeContentView;
     window.delegate = self;
     [window setTitle:@"MacBrowser"];
     [window center];
-    [window makeKeyAndOrderFront:nil];
 
-    CGFloat toolbarHeight = 56;
-    NSView *toolbar = [[NSView alloc] initWithFrame:NSMakeRect(0, contentView.bounds.size.height - toolbarHeight, contentView.bounds.size.width, toolbarHeight)];
+    CGFloat toolbarHeight = 52;
+    NSVisualEffectView *toolbar = [[NSVisualEffectView alloc] initWithFrame:NSMakeRect(0, contentView.bounds.size.height - toolbarHeight, contentView.bounds.size.width, toolbarHeight)];
+    toolbar.material = NSVisualEffectMaterialHUDWindow;
+    toolbar.blendingMode = NSVisualEffectBlendingModeWithinWindow;
+    toolbar.state = NSVisualEffectStateActive;
     toolbar.wantsLayer = YES;
     toolbar.layer.backgroundColor = [MBColorSurface() CGColor];
     toolbar.autoresizingMask = NSViewWidthSizable | NSViewMinYMargin;
     [contentView addSubview:toolbar];
 
-    CGFloat buttonWidth = 72;
-    CGFloat buttonHeight = 30;
-    CGFloat buttonY = 13;
-    CGFloat x = 14;
+    NSView *accentLine = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, toolbar.bounds.size.width, 1)];
+    accentLine.wantsLayer = YES;
+    accentLine.layer.backgroundColor = [MBColorCopper() colorWithAlphaComponent:0.35].CGColor;
+    accentLine.autoresizingMask = NSViewWidthSizable | NSViewMaxYMargin;
+    [toolbar addSubview:accentLine];
 
-    self.homeButton = [self makeToolbarButtonWithTitle:@"Home" action:@selector(goHome:) x:x y:buttonY width:buttonWidth height:buttonHeight inView:toolbar];
-    x += buttonWidth + 6;
+    CGFloat control = 32;
+    CGFloat y = (toolbarHeight - control) / 2.0;
+    CGFloat x = 12;
+    CGFloat gap = 4;
 
-    self.backButton = [self makeToolbarButtonWithTitle:@"Back" action:@selector(goBack:) x:x y:buttonY width:buttonWidth height:buttonHeight inView:toolbar];
-    x += buttonWidth + 6;
+    self.homeButton = [self makeSymbolButton:@"house.fill" toolTip:@"Start page (DuckDuckGo)" action:@selector(goHome:) frame:NSMakeRect(x, y, control, control) inView:toolbar];
+    x += control + gap;
 
-    self.forwardButton = [self makeToolbarButtonWithTitle:@"Forward" action:@selector(goForward:) x:x y:buttonY width:buttonWidth height:buttonHeight inView:toolbar];
-    x += buttonWidth + 6;
+    self.backButton = [self makeSymbolButton:@"chevron.left" toolTip:@"Back" action:@selector(goBack:) frame:NSMakeRect(x, y, control, control) inView:toolbar];
+    x += control + gap;
 
-    self.reloadButton = [self makeToolbarButtonWithTitle:@"Reload" action:@selector(reloadPage:) x:x y:buttonY width:buttonWidth height:buttonHeight inView:toolbar];
-    x += buttonWidth + 10;
+    self.forwardButton = [self makeSymbolButton:@"chevron.right" toolTip:@"Forward" action:@selector(goForward:) frame:NSMakeRect(x, y, control, control) inView:toolbar];
+    x += control + gap;
 
-    CGFloat addressWidth = toolbar.bounds.size.width - x - 14;
-    self.addressField = [[NSTextField alloc] initWithFrame:NSMakeRect(x, buttonY, addressWidth, buttonHeight)];
+    self.reloadButton = [self makeSymbolButton:@"arrow.clockwise" toolTip:@"Reload" action:@selector(reloadPage:) frame:NSMakeRect(x, y, control, control) inView:toolbar];
+    x += control + 10;
+
+    CGFloat fieldW = toolbar.bounds.size.width - x - 12;
+    self.addressField = [[NSTextField alloc] initWithFrame:NSMakeRect(x, y, fieldW, control)];
     self.addressField.autoresizingMask = NSViewWidthSizable;
-    self.addressField.placeholderString = @"Search or enter address";
     self.addressField.placeholderAttributedString = [[NSAttributedString alloc]
-        initWithString:@"Search or enter address"
-            attributes:@{NSForegroundColorAttributeName: MBColorStone()}];
+        initWithString:@"Search DuckDuckGo or enter address"
+            attributes:@{
+                NSForegroundColorAttributeName: MBColorStone(),
+                NSFontAttributeName: [NSFont systemFontOfSize:13 weight:NSFontWeightRegular]
+            }];
     self.addressField.font = [NSFont systemFontOfSize:13 weight:NSFontWeightRegular];
     self.addressField.drawsBackground = YES;
     self.addressField.backgroundColor = MBColorInk();
     self.addressField.textColor = MBColorCream();
+    self.addressField.bezeled = YES;
     self.addressField.bezelStyle = NSTextFieldRoundedBezel;
     self.addressField.focusRingType = NSFocusRingTypeExterior;
     self.addressField.delegate = self;
@@ -169,7 +184,9 @@ static NSColor *MBColorStone(void) {
     self.webView.underPageBackgroundColor = MBColorInk();
     [contentView addSubview:self.webView];
 
+    [window makeKeyAndOrderFront:nil];
     [self goHome:nil];
+    [self focusAddressBar:nil];
 }
 
 - (void)focusAddressBar:(id)sender {
@@ -199,78 +216,64 @@ static NSColor *MBColorStone(void) {
 }
 
 - (void)updateNavigationButtons {
-    if (self.onHomePage) {
-        self.backButton.enabled = NO;
-        self.forwardButton.enabled = NO;
-        return;
-    }
     self.backButton.enabled = self.webView.canGoBack;
     self.forwardButton.enabled = self.webView.canGoForward;
 }
 
 - (void)goHome:(id)sender {
-    self.onHomePage = YES;
-    [self.webView loadHTMLString:[self homeHTML] baseURL:[self homeBaseURL]];
-    self.addressField.stringValue = @"";
-    [self updateNavigationButtons];
+    NSURLRequest *request = [NSURLRequest requestWithURL:[NSURL URLWithString:kStartPageURLString]];
+    [self.webView loadRequest:request];
 }
 
 - (void)loadAddress:(NSString *)address {
-    NSString *urlString = [address stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
-    if (urlString.length == 0) {
+    NSString *trimmed = [address stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+    if (trimmed.length == 0) {
         return;
     }
 
-    if ([self looksLikeURL:urlString]) {
+    NSURL *url = nil;
+    if ([self looksLikeURL:trimmed]) {
+        NSString *urlString = trimmed;
         if (![urlString containsString:@"://"]) {
             urlString = [@"https://" stringByAppendingString:urlString];
         }
+        url = [NSURL URLWithString:urlString];
     } else {
-        NSString *encoded = [urlString stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]];
-        urlString = [NSString stringWithFormat:@"https://duckduckgo.com/?q=%@", encoded ?: urlString];
+        url = MBSearchURL(trimmed);
     }
 
-    NSURL *url = [NSURL URLWithString:urlString];
     if (!url) {
         NSAlert *alert = [[NSAlert alloc] init];
-        alert.messageText = @"Invalid URL";
-        alert.informativeText = @"Please enter a valid web address or search query.";
+        alert.messageText = @"Invalid address";
+        alert.informativeText = @"Enter a URL or search query.";
         [alert runModal];
         return;
     }
 
-    self.onHomePage = NO;
-    NSURLRequest *request = [NSURLRequest requestWithURL:url];
-    [self.webView loadRequest:request];
+    [self.webView loadRequest:[NSURLRequest requestWithURL:url]];
 }
 
 - (void)goBack:(id)sender {
-    if ([self.webView canGoBack]) {
+    if (self.webView.canGoBack) {
         [self.webView goBack];
     }
 }
 
 - (void)goForward:(id)sender {
-    if ([self.webView canGoForward]) {
+    if (self.webView.canGoForward) {
         [self.webView goForward];
     }
 }
 
 - (void)reloadPage:(id)sender {
-    if (self.onHomePage) {
-        [self goHome:sender];
-        return;
-    }
     [self.webView reload];
 }
 
 - (void)webView:(WKWebView *)webView didFinishNavigation:(WKNavigation *)navigation {
-    NSString *currentURL = webView.URL.absoluteString;
-    if (currentURL == nil || [currentURL isEqualToString:@"about:blank"]) {
-        self.onHomePage = YES;
+    if ([self isOnStartPage]) {
         self.addressField.stringValue = @"";
-    } else if (!self.onHomePage) {
-        self.addressField.stringValue = currentURL;
+    } else {
+        self.addressField.stringValue = webView.URL.absoluteString ?: @"";
     }
     [self updateNavigationButtons];
 }

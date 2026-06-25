@@ -9,7 +9,8 @@ MacBrowser is a minimal native macOS browser prototype implemented with Objectiv
 - Dark, restrained UI focused on hierarchy and readability
 - Controls: `Home`, `Back`, `Forward`, `Reload`
 - Address field with URL detection, `https://` completion, and DuckDuckGo search fallback
-- Built-in home page designed to the [Metics $10K Checklist](https://github.com/amepla/Fastest) — dark-luxury editorial, paired typography, motion, mobile layout, accessibility
+- Dark toolbar with SF Symbols, restrained ink/cream/copper palette ($10K design system applied to native UI)
+- Start page and default search: [DuckDuckGo](https://duckduckgo.com) — fast, private, no tracking
 - JavaScript enabled in `WKWebView`, back/forward gestures supported
 
 ## Installation (Recommended for Users)
