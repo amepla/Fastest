@@ -1,59 +1,60 @@
 # MacBrowser
 
-A premium macOS browser prototype built in C++/Objective-C++ using Cocoa and WebKit.
+MacBrowser is a minimal native macOS browser prototype implemented with Objective-C++ and WebKit (`WKWebView`). It demonstrates a compact, premium-styled UI and provides a foundation for features like tabs, bookmarks and history.
 
-## Features
+Features
+--------
 
-- Dark, restrained UI inspired by premium design principles
-- Home, Back, Forward, Reload controls
-- Address bar with URL entry and validation
-- Built-in styled home page that reflects a polished visual aesthetic
-- WebKit rendering with JavaScript enabled
+- Dark, restrained UI focused on hierarchy and readability
+- Controls: `Home`, `Back`, `Forward`, `Reload`
+- Address field with automatic `https://` scheme completion and basic validation
+- Built-in styled home page (landing) for presentation and testing
+- JavaScript enabled in `WKWebView`, back/forward gestures supported
 
-## Requirements
+Quick start (build & run)
+-------------------------
 
-- macOS with Xcode developer tools
-- `clang++` / `clang` with Objective-C++ support
-
-## Build
+Open a terminal in the project directory and run:
 
 ```bash
+cd "/Users/hyoma/Documents/mac browser"
 ./scripts/build.sh
+# or directly:
+clang++ -std=c++17 -ObjC++ src/main.mm src/BrowserApp.mm -framework Cocoa -framework WebKit -o MacBrowser
 ```
 
-## Run
+Run the binary:
 
 ```bash
 ./MacBrowser
 ```
 
-## Project structure
+Project layout
+--------------
 
 - `src/main.mm` — application entry point
 - `src/BrowserApp.h` — application class declaration
-- `src/BrowserApp.mm` — native UI and WebKit integration
-- `CMakeLists.txt` — optional CMake build script
-- `.gitignore` — ignored files for macOS, CMake, Python, and editor files
-- `LICENSE` — MIT license
+- `src/BrowserApp.mm` — UI implementation and WebKit integration
 - `scripts/build.sh` — convenience build script
+- `CMakeLists.txt` — optional CMake support
+- `.gitignore`, `LICENSE`, `README.md`
 
-## GitHub repository setup
+Contributing
+------------
 
-1. Create a new repository on GitHub.
-2. Name it `macbrowser` or `mac-browser`.
-3. Push this project as the first commit.
-4. Add a repository description like: "Premium macOS browser prototype using Objective-C++ and WebKit."
+Contributions are welcome. Suggested workflow:
 
-## New account setup
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feat/your-feature`)
+3. Make changes, build and test locally
+4. Push and open a pull request with a descriptive title and summary
 
-If you need a fresh GitHub account for this project:
+License
+-------
 
-1. Go to https://github.com/join
-2. Choose a username related to your browser project.
-3. Use a secure password and a recovery email.
-4. Verify your account via email and enable 2FA if possible.
-5. Create a new repository and push the project.
+This project is released under the MIT License. See the `LICENSE` file for details.
 
-## Notes
+Contact
+-------
 
-This project is a native macOS browser prototype designed for a premium visual experience. Use it as a foundation for adding tabs, bookmarks, history, and keyboard shortcuts.
+If you'd like, I can add GitHub Actions for automated macOS builds, enable GitHub Pages for screenshots/docs, or implement tab/bookmark support inside the app — tell me which you'd prefer next.
