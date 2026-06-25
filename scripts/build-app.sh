@@ -32,4 +32,6 @@ cat > "$CONTENTS/Info.plist" <<'EOF'
 </plist>
 EOF
 chmod +x "$CONTENTS/MacOS/MacBrowser"
-echo "Built $APP"
+touch "$CONTENTS/Resources/.keep"
+codesign --force --sign - "$APP" 2>/dev/null || true
+echo "Built $APP (signed)"
