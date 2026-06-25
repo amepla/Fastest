@@ -157,7 +157,7 @@ static NSURL *MBSearchURL(NSString *query) {
 
     self.startPageMarkup = [self loadNewTabHTML];
 
-    CGFloat toolbarHeight = 48;
+    CGFloat toolbarHeight = 52;
     NSView *toolbar = [[NSView alloc] initWithFrame:NSMakeRect(0, contentView.bounds.size.height - toolbarHeight, contentView.bounds.size.width, toolbarHeight)];
     toolbar.wantsLayer = YES;
     toolbar.layer.backgroundColor = [NSColor colorWithCalibratedWhite:0.08 alpha:1.0].CGColor;
@@ -170,7 +170,7 @@ static NSURL *MBSearchURL(NSString *query) {
     separator.autoresizingMask = NSViewWidthSizable | NSViewMaxYMargin;
     [toolbar addSubview:separator];
 
-    CGFloat control = 30;
+    CGFloat control = 36;
     CGFloat y = (toolbarHeight - control) / 2.0;
     CGFloat x = 10;
 
@@ -186,7 +186,8 @@ static NSURL *MBSearchURL(NSString *query) {
     self.addressField = [[NSSearchField alloc] initWithFrame:NSMakeRect(x, y, toolbar.bounds.size.width - x - 10, control)];
     self.addressField.autoresizingMask = NSViewWidthSizable;
     self.addressField.placeholderString = @"Search or enter address";
-    self.addressField.font = [NSFont systemFontOfSize:13 weight:NSFontWeightRegular];
+    self.addressField.font = [NSFont systemFontOfSize:15 weight:NSFontWeightRegular];
+    self.addressField.bezelStyle = NSTextFieldRoundedBezel;
     self.addressField.delegate = self;
     self.addressField.sendsSearchStringImmediately = NO;
     self.addressField.sendsWholeSearchString = YES;

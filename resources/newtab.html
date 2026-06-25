@@ -3,110 +3,270 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark">
   <title>New Tab</title>
   <style>
+    :root {
+      --ink: #060606;
+      --surface: #0c0c0c;
+      --foreground: #f5f5f7;
+      --muted: rgba(245, 245, 247, 0.45);
+      --border: rgba(255, 255, 255, 0.1);
+      --ring: rgba(201, 162, 122, 0.35);
+      --copper: #c9a27a;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 8px 32px rgba(0, 0, 0, 0.45);
+    }
+
     * { box-sizing: border-box; }
+
     html, body {
       margin: 0;
       height: 100%;
-      background: #060606;
-      color: #f4efe6;
-      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+      background: var(--ink);
+      color: var(--foreground);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
     }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 50% -10%, rgba(201, 162, 122, 0.07), transparent 55%),
+        radial-gradient(ellipse 60% 40% at 80% 100%, rgba(255, 255, 255, 0.03), transparent 50%);
+      pointer-events: none;
+    }
+
     main {
+      position: relative;
       min-height: 100%;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 2rem;
+      padding: 3rem 1.5rem;
     }
-    .panel {
-      width: min(520px, 100%);
-      animation: fadeIn 0.35s ease-out;
+
+    .search-shell {
+      width: min(640px, 100%);
+      animation: rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
     }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(8px); }
-      to { opacity: 1; transform: translateY(0); }
+
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(14px) scale(0.985); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
     }
+
     @media (prefers-reduced-motion: reduce) {
-      .panel { animation: none; }
+      .search-shell { animation: none; }
+      .icon-spin { animation: none !important; }
     }
-    h1 {
-      margin: 0 0 1.5rem;
-      font-size: 1.75rem;
-      font-weight: 600;
-      letter-spacing: -0.02em;
-      text-align: center;
-      color: #f4efe6;
-    }
+
     form { margin: 0; }
-    .search-wrap {
+
+    .field {
+      position: relative;
+      display: flex;
+      align-items: stretch;
+      height: 3.75rem;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      box-shadow: var(--shadow);
+      transition:
+        border-color 0.2s ease,
+        box-shadow 0.25s ease,
+        transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .field:hover {
+      border-color: rgba(255, 255, 255, 0.14);
+    }
+
+    .field:focus-within {
+      border-color: rgba(201, 162, 122, 0.45);
+      box-shadow:
+        var(--shadow),
+        0 0 0 3px var(--ring);
+      transform: scale(1.01);
+    }
+
+    .icon-slot {
+      position: absolute;
+      top: 0;
+      bottom: 0;
       display: flex;
       align-items: center;
-      gap: 0.5rem;
-      padding: 0.35rem 0.35rem 0.35rem 1rem;
-      border-radius: 14px;
-      background: #101010;
-      border: 1px solid rgba(201, 162, 122, 0.22);
-      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      justify-content: center;
+      width: 3.25rem;
+      color: var(--muted);
+      pointer-events: none;
+      transition: color 0.2s ease;
     }
-    .search-wrap:focus-within {
-      border-color: rgba(201, 162, 122, 0.55);
-      box-shadow: 0 0 0 4px rgba(201, 162, 122, 0.12);
+
+    .icon-slot.start { left: 0; }
+    .icon-slot.end { right: 0; width: 3.5rem; }
+
+    .field:focus-within .icon-slot.start { color: rgba(201, 162, 122, 0.85); }
+
+    .icon {
+      width: 1.15rem;
+      height: 1.15rem;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
     }
-    input {
+
+    .icon-spin {
+      animation: spin 0.75s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    input[type="search"] {
       flex: 1;
+      width: 100%;
+      height: 100%;
       border: none;
       outline: none;
       background: transparent;
-      color: #f4efe6;
-      font-size: 1.05rem;
-      line-height: 1.4;
-      padding: 0.65rem 0;
+      color: var(--foreground);
+      font-size: 1.125rem;
+      font-weight: 400;
+      letter-spacing: -0.01em;
+      padding: 0 3.5rem 0 3.25rem;
+      border-radius: 14px;
+      -webkit-appearance: none;
+      appearance: none;
     }
-    input::placeholder { color: #9a8f82; }
-    button {
+
+    input[type="search"]::placeholder {
+      color: var(--muted);
+    }
+
+    input[type="search"]::-webkit-search-cancel-button,
+    input[type="search"]::-webkit-search-decoration,
+    input[type="search"]::-webkit-search-results-button,
+    input[type="search"]::-webkit-search-results-decoration {
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    .mic-btn {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 3.5rem;
+      height: 100%;
       border: none;
-      border-radius: 10px;
-      padding: 0.6rem 1.1rem;
-      font-size: 0.95rem;
-      font-weight: 600;
+      background: transparent;
+      color: var(--muted);
       cursor: pointer;
-      color: #060606;
-      background: #c9a27a;
-      transition: transform 0.15s ease, filter 0.15s ease;
+      border-radius: 0 14px 14px 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.2s ease, background 0.2s ease;
     }
-    button:hover { filter: brightness(1.08); transform: scale(1.02); }
-    button:active { transform: scale(0.98); }
-    p.hint {
-      margin: 1rem 0 0;
-      text-align: center;
-      font-size: 0.85rem;
-      color: #9a8f82;
+
+    .mic-btn:hover {
+      color: var(--foreground);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .mic-btn:active {
+      transform: scale(0.96);
+    }
+
+    .mic-btn:focus-visible {
+      outline: 2px solid var(--ring);
+      outline-offset: -2px;
+    }
+
+    @media (max-width: 520px) {
+      .field { height: 3.35rem; }
+      input[type="search"] { font-size: 1rem; }
     }
   </style>
 </head>
 <body>
   <main>
-    <div class="panel">
-      <h1>Search the web</h1>
-      <form id="search-form">
-        <div class="search-wrap">
-          <input id="q" type="search" placeholder="Search or enter address" autocomplete="off" spellcheck="false" autofocus />
-          <button type="submit">Go</button>
+    <div class="search-shell">
+      <form id="search-form" role="search">
+        <div class="field">
+          <span class="icon-slot start" id="leading-icon" aria-hidden="true">
+            <svg class="icon" id="search-icon" viewBox="0 0 24 24">
+              <circle cx="11" cy="11" r="7"></circle>
+              <path d="M20 20l-3.5-3.5"></path>
+            </svg>
+            <svg class="icon icon-spin" id="loader-icon" viewBox="0 0 24 24" hidden>
+              <path d="M12 3a9 9 0 1 0 9 9" opacity="0.9"></path>
+            </svg>
+          </span>
+          <input
+            id="q"
+            type="search"
+            name="q"
+            placeholder="Search or enter address"
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="off"
+            spellcheck="false"
+            enterkeyhint="search"
+            autofocus
+          />
+          <button class="mic-btn" type="submit" aria-label="Search">
+            <svg class="icon" viewBox="0 0 24 24">
+              <path d="M12 1a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+              <path d="M19 11v1a7 7 0 0 1-14 0v-1"></path>
+              <path d="M12 19v4"></path>
+            </svg>
+          </button>
         </div>
       </form>
-      <p class="hint">Powered by DuckDuckGo · ⌘L to focus here</p>
     </div>
   </main>
   <script>
-    document.getElementById("search-form").addEventListener("submit", function (e) {
-      e.preventDefault();
-      var q = document.getElementById("q").value.trim();
-      if (q) {
-        window.webkit.messageHandlers.search.postMessage(q);
+    (function () {
+      var input = document.getElementById("q");
+      var form = document.getElementById("search-form");
+      var searchIcon = document.getElementById("search-icon");
+      var loaderIcon = document.getElementById("loader-icon");
+      var timer = null;
+
+      function setLoading(on) {
+        searchIcon.hidden = on;
+        loaderIcon.hidden = !on;
       }
-    });
+
+      input.addEventListener("input", function () {
+        clearTimeout(timer);
+        if (!input.value.trim()) {
+          setLoading(false);
+          return;
+        }
+        setLoading(true);
+        timer = setTimeout(function () {
+          setLoading(false);
+        }, 420);
+      });
+
+      function submit() {
+        var q = input.value.trim();
+        if (q && window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.search) {
+          window.webkit.messageHandlers.search.postMessage(q);
+        }
+      }
+
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        submit();
+      });
+    })();
   </script>
 </body>
 </html>
