@@ -9,8 +9,8 @@ Open-source native macOS browser built with Objective-C++ and WebKit. Full sourc
 ## Install
 
 1. Download the latest `MacBrowser-v*.dmg` from **[Releases](https://github.com/amepla/Fastest/releases)**
-2. Open the DMG and drag **MacBrowser.app** into **Applications**
-3. Launch from Applications
+2. Open the DMG — drag **MacBrowser.app** onto the **Applications** folder (arrow on the background)
+3. Open **Applications** → **MacBrowser**
 
 **Requires:** macOS 10.15+
 
