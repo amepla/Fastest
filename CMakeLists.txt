@@ -17,6 +17,8 @@ target_link_libraries(MacBrowser
     "-framework Cocoa"
     "-framework WebKit"
     "-framework QuartzCore"
+    "-framework Speech"
+    "-framework AVFoundation"
 )
 
 target_compile_options(MacBrowser PRIVATE -fobjc-arc)

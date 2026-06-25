@@ -15,6 +15,7 @@
       --ring: rgba(201, 162, 122, 0.35);
       --copper: #c9a27a;
       --shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 8px 32px rgba(0, 0, 0, 0.45);
+      --danger: #ff6961;
     }
 
     * { box-sizing: border-box; }
@@ -173,9 +174,14 @@
       transition: color 0.2s ease, background 0.2s ease;
     }
 
-    .mic-btn:hover {
+    .mic-btn:hover,
+    .mic-btn.listening {
       color: var(--foreground);
       background: rgba(255, 255, 255, 0.04);
+    }
+
+    .mic-btn.listening {
+      color: var(--danger);
     }
 
     .mic-btn:active {
@@ -219,7 +225,7 @@
             enterkeyhint="search"
             autofocus
           />
-          <button class="mic-btn" type="submit" aria-label="Search">
+          <button class="mic-btn" id="voice-btn" type="button" aria-label="Voice input" title="Voice input">
             <svg class="icon" viewBox="0 0 24 24">
               <path d="M12 1a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
               <path d="M19 11v1a7 7 0 0 1-14 0v-1"></path>
@@ -234,30 +240,19 @@
     (function () {
       var input = document.getElementById("q");
       var form = document.getElementById("search-form");
+      var voiceBtn = document.getElementById("voice-btn");
       var searchIcon = document.getElementById("search-icon");
       var loaderIcon = document.getElementById("loader-icon");
-      var timer = null;
 
       function setLoading(on) {
         searchIcon.hidden = on;
         loaderIcon.hidden = !on;
       }
 
-      input.addEventListener("input", function () {
-        clearTimeout(timer);
-        if (!input.value.trim()) {
-          setLoading(false);
-          return;
-        }
-        setLoading(true);
-        timer = setTimeout(function () {
-          setLoading(false);
-        }, 420);
-      });
-
       function submit() {
         var q = input.value.trim();
         if (q && window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.search) {
+          setLoading(true);
           window.webkit.messageHandlers.search.postMessage(q);
         }
       }
@@ -266,6 +261,23 @@
         e.preventDefault();
         submit();
       });
+
+      voiceBtn.addEventListener("click", function () {
+        if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.voice) {
+          window.webkit.messageHandlers.voice.postMessage("toggle");
+        }
+      });
+
+      window.macBrowserSetQuery = function (value) {
+        input.value = value || "";
+      };
+
+      window.macBrowserSetVoiceState = function (state) {
+        var listening = state === "listening";
+        voiceBtn.classList.toggle("listening", listening);
+        voiceBtn.setAttribute("aria-pressed", listening ? "true" : "false");
+        voiceBtn.title = listening ? "Stop voice input" : "Voice input";
+      };
     })();
   </script>
 </body>

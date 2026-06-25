@@ -2,6 +2,8 @@
 #import <Cocoa/Cocoa.h>
 #import <WebKit/WebKit.h>
 #import <QuartzCore/QuartzCore.h>
+#import <Speech/Speech.h>
+#import <AVFoundation/AVFoundation.h>
 
 static NSString * const kNewTabScheme = @"macbrowser";
 
@@ -67,6 +69,11 @@ static NSURL *MBSearchURL(NSString *query) {
 @property (nonatomic, strong) MBToolbarButton *homeButton;
 @property (nonatomic, assign) BOOL onNewTabPage;
 @property (nonatomic, strong) NSString *startPageMarkup;
+@property (nonatomic, strong) SFSpeechRecognizer *speechRecognizer;
+@property (nonatomic, strong) AVAudioEngine *audioEngine;
+@property (nonatomic, strong) SFSpeechAudioBufferRecognitionRequest *recognitionRequest;
+@property (nonatomic, strong) SFSpeechRecognitionTask *recognitionTask;
+@property (nonatomic, assign) BOOL isListening;
 @end
 
 @implementation BrowserWindowController
@@ -101,6 +108,8 @@ static NSURL *MBSearchURL(NSString *query) {
     [navMenu addItemWithTitle:@"Reload" action:@selector(reloadPage:) keyEquivalent:@"r"];
     [navMenu addItem:[NSMenuItem separatorItem]];
     [navMenu addItemWithTitle:@"Focus Address Bar" action:@selector(focusAddressBar:) keyEquivalent:@"l"];
+    [navMenu addItemWithTitle:@"Voice Search" action:@selector(toggleVoiceInput:) keyEquivalent:@"d"];
+    [[navMenu itemAtIndex:6] setKeyEquivalentModifierMask:NSEventModifierFlagCommand | NSEventModifierFlagShift];
     navMenuItem.submenu = navMenu;
     [mainMenu addItem:navMenuItem];
 
@@ -156,6 +165,8 @@ static NSURL *MBSearchURL(NSString *query) {
     [window center];
 
     self.startPageMarkup = [self loadNewTabHTML];
+    self.speechRecognizer = [[SFSpeechRecognizer alloc] initWithLocale:[NSLocale currentLocale]];
+    self.audioEngine = [[AVAudioEngine alloc] init];
 
     CGFloat toolbarHeight = 52;
     NSView *toolbar = [[NSView alloc] initWithFrame:NSMakeRect(0, contentView.bounds.size.height - toolbarHeight, contentView.bounds.size.width, toolbarHeight)];
@@ -203,6 +214,7 @@ static NSURL *MBSearchURL(NSString *query) {
     config.defaultWebpagePreferences = preferences;
     config.mediaTypesRequiringUserActionForPlayback = WKAudiovisualMediaTypeAll;
     [config.userContentController addScriptMessageHandler:self name:@"search"];
+    [config.userContentController addScriptMessageHandler:self name:@"voice"];
 
     self.webView = [[WKWebView alloc] initWithFrame:webFrame configuration:config];
     self.webView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
@@ -297,6 +309,109 @@ static NSURL *MBSearchURL(NSString *query) {
     [self.webView loadRequest:[NSURLRequest requestWithURL:url]];
 }
 
+- (void)setNewTabQuery:(NSString *)query {
+    NSString *escaped = [[query stringByReplacingOccurrencesOfString:@"\\" withString:@"\\\\"]
+        stringByReplacingOccurrencesOfString:@"\"" withString:@"\\\""];
+    NSString *script = [NSString stringWithFormat:@"window.macBrowserSetQuery && window.macBrowserSetQuery(\"%@\")", escaped ?: @""];
+    [self.webView evaluateJavaScript:script completionHandler:nil];
+}
+
+- (void)setVoiceState:(NSString *)state {
+    NSString *script = [NSString stringWithFormat:@"window.macBrowserSetVoiceState && window.macBrowserSetVoiceState(\"%@\")", state];
+    [self.webView evaluateJavaScript:script completionHandler:nil];
+}
+
+- (void)toggleVoiceInput:(id)sender {
+    if (self.isListening) {
+        [self stopVoiceInputAndSubmit:NO];
+        return;
+    }
+
+    [SFSpeechRecognizer requestAuthorization:^(SFSpeechRecognizerAuthorizationStatus status) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (status != SFSpeechRecognizerAuthorizationStatusAuthorized) {
+                NSAlert *alert = [[NSAlert alloc] init];
+                alert.messageText = @"Voice input is not allowed";
+                alert.informativeText = @"Enable Speech Recognition and Microphone access for MacBrowser in System Settings.";
+                [alert runModal];
+                return;
+            }
+            [self startVoiceInput];
+        });
+    }];
+}
+
+- (void)startVoiceInput {
+    if (self.audioEngine.isRunning) {
+        [self stopVoiceInputAndSubmit:NO];
+    }
+
+    [self.recognitionTask cancel];
+    self.recognitionTask = nil;
+
+    self.recognitionRequest = [[SFSpeechAudioBufferRecognitionRequest alloc] init];
+    self.recognitionRequest.shouldReportPartialResults = YES;
+
+    AVAudioInputNode *inputNode = self.audioEngine.inputNode;
+    AVAudioFormat *format = [inputNode outputFormatForBus:0];
+    [inputNode removeTapOnBus:0];
+    [inputNode installTapOnBus:0 bufferSize:1024 format:format block:^(AVAudioPCMBuffer *buffer, AVAudioTime *when) {
+        (void)when;
+        [self.recognitionRequest appendAudioPCMBuffer:buffer];
+    }];
+
+    __weak BrowserWindowController *weakSelf = self;
+    self.recognitionTask = [self.speechRecognizer recognitionTaskWithRequest:self.recognitionRequest
+        resultHandler:^(SFSpeechRecognitionResult *result, NSError *error) {
+            BrowserWindowController *strongSelf = weakSelf;
+            if (!strongSelf) {
+                return;
+            }
+
+            if (result) {
+                NSString *text = result.bestTranscription.formattedString;
+                strongSelf.addressField.stringValue = text ?: @"";
+                if (strongSelf.onNewTabPage) {
+                    [strongSelf setNewTabQuery:text ?: @""];
+                }
+            }
+
+            if (error || result.isFinal) {
+                [strongSelf stopVoiceInputAndSubmit:result.isFinal];
+            }
+        }];
+
+    NSError *error = nil;
+    if (![self.audioEngine startAndReturnError:&error]) {
+        NSAlert *alert = [[NSAlert alloc] init];
+        alert.messageText = @"Microphone could not start";
+        alert.informativeText = error.localizedDescription ?: @"Check Microphone permission in System Settings.";
+        [alert runModal];
+        return;
+    }
+
+    self.isListening = YES;
+    [self setVoiceState:@"listening"];
+}
+
+- (void)stopVoiceInputAndSubmit:(BOOL)submit {
+    if (self.audioEngine.isRunning) {
+        [self.audioEngine stop];
+        [self.audioEngine.inputNode removeTapOnBus:0];
+    }
+
+    [self.recognitionRequest endAudio];
+    self.recognitionRequest = nil;
+    self.recognitionTask = nil;
+    self.isListening = NO;
+    [self setVoiceState:@"idle"];
+
+    NSString *query = [self.addressField.stringValue stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+    if (submit && query.length > 0) {
+        [self loadAddress:query];
+    }
+}
+
 - (void)goBack:(id)sender {
     if (self.webView.canGoBack) {
         [self.webView goBack];
@@ -320,6 +435,8 @@ static NSURL *MBSearchURL(NSString *query) {
 - (void)userContentController:(WKUserContentController *)userContentController didReceiveScriptMessage:(WKScriptMessage *)message {
     if ([message.name isEqualToString:@"search"] && [message.body isKindOfClass:[NSString class]]) {
         [self loadAddress:(NSString *)message.body];
+    } else if ([message.name isEqualToString:@"voice"]) {
+        [self toggleVoiceInput:nil];
     }
 }
 
@@ -352,7 +469,9 @@ static NSURL *MBSearchURL(NSString *query) {
 }
 
 - (void)windowWillClose:(NSNotification *)notification {
+    [self stopVoiceInputAndSubmit:NO];
     [self.webView.configuration.userContentController removeScriptMessageHandlerForName:@"search"];
+    [self.webView.configuration.userContentController removeScriptMessageHandlerForName:@"voice"];
     [NSApp terminate:nil];
 }
 

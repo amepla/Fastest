@@ -27,7 +27,7 @@ fi
 mkdir -p "$CONTENTS/MacOS" "$RESOURCES"
 clang++ -std=c++17 -ObjC++ -fobjc-arc -Wall -Wextra \
     src/main.mm src/BrowserApp.mm \
-    -framework Cocoa -framework WebKit -framework QuartzCore \
+    -framework Cocoa -framework WebKit -framework QuartzCore -framework Speech -framework AVFoundation \
     -o "$CONTENTS/MacOS/MacBrowser"
 
 ICON_PLIST_ENTRY=""
@@ -63,6 +63,10 @@ ${ICON_PLIST_ENTRY}  <key>CFBundleIdentifier</key>
   <string>10.15</string>
   <key>NSHighResolutionCapable</key>
   <true/>
+  <key>NSSpeechRecognitionUsageDescription</key>
+  <string>MacBrowser uses speech recognition when you press the microphone button to search by voice.</string>
+  <key>NSMicrophoneUsageDescription</key>
+  <string>MacBrowser uses the microphone only while voice search is active.</string>
   <key>NSPrincipalClass</key>
   <string>NSApplication</string>
 </dict>

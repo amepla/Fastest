@@ -18,6 +18,10 @@
   <string>10.15</string>
   <key>NSHighResolutionCapable</key>
   <true/>
+  <key>NSSpeechRecognitionUsageDescription</key>
+  <string>MacBrowser uses speech recognition when you press the microphone button to search by voice.</string>
+  <key>NSMicrophoneUsageDescription</key>
+  <string>MacBrowser uses the microphone only while voice search is active.</string>
   <key>NSPrincipalClass</key>
   <string>NSApplication</string>
 </dict>
