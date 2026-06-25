@@ -8,7 +8,6 @@ mkdir -p "releases/$VERSION"
 rm -f "$OUTPUT"
 
 ./scripts/build-app.sh
-
-ditto -c -k --sequesterRsrc --keepParent "MacBrowser.app" "$OUTPUT"
+zip -r -y "$OUTPUT" "MacBrowser.app"
 
 echo "Packaged $OUTPUT"
