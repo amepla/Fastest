@@ -9,6 +9,7 @@ MacBrowser
 *.o
 *.obj
 *.dSYM/
+scripts/.dmg-resources/
 
 # CMake
 CMakeFiles/
