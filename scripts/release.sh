@@ -2,17 +2,44 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+# shellcheck source=lib/version.sh
+source "$(dirname "$0")/lib/version.sh"
+
 TAG="${1:-}"
+SKIP_BUILD=0
+NOTES_FILE=""
+
+shift || true
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --skip-build)
+            SKIP_BUILD=1
+            ;;
+        --notes)
+            shift
+            NOTES_FILE="${1:-}"
+            ;;
+        *)
+            if [ -z "$NOTES_FILE" ] && [ -f "$1" ]; then
+                NOTES_FILE="$1"
+            else
+                echo "Unknown argument: $1" >&2
+                exit 1
+            fi
+            ;;
+    esac
+    shift || true
+done
+
 if [ -z "$TAG" ]; then
-    echo "Usage: $0 <tag> [release-notes-file]" >&2
-    echo "Example: $0 v0.3" >&2
-    echo "         $0 v0.3 notes.md" >&2
+    echo "Usage: $0 <tag> [notes-file] [--skip-build]" >&2
+    echo "Example: $0 v0.4" >&2
+    echo "         $0 v0.4 RELEASE_NOTES.md" >&2
     exit 1
 fi
 
-TAG="${TAG#v}"
-TAG="v${TAG}"
-NOTES_FILE="${2:-}"
+validate_tag "$TAG"
+TAG="$(normalize_tag "$TAG")"
 
 if ! command -v gh >/dev/null 2>&1; then
     echo "Error: GitHub CLI (gh) is required — https://cli.github.com/" >&2
@@ -24,9 +51,28 @@ if ! gh auth status >/dev/null 2>&1; then
     exit 1
 fi
 
-echo "==> Building DMG for ${TAG}"
-./scripts/create-dmg-background.sh
-./scripts/create-dmg.sh "$TAG"
+if [ "$SKIP_BUILD" -eq 0 ]; then
+    if ! git diff --quiet || ! git diff --cached --quiet; then
+        echo "Error: working tree has uncommitted changes. Commit or stash before releasing." >&2
+        exit 1
+    fi
+
+    LOCAL_HEAD="$(git rev-parse HEAD)"
+    if ! git rev-parse "@{u}" >/dev/null 2>&1; then
+        echo "Warning: no upstream branch configured; tag may not match remote main." >&2
+    else
+        REMOTE_HEAD="$(git rev-parse "@{u}")"
+        if [ "$LOCAL_HEAD" != "$REMOTE_HEAD" ]; then
+            echo "Error: local branch is not synced with remote. Push or pull before releasing." >&2
+            exit 1
+        fi
+    fi
+
+    echo "==> Building DMG for ${TAG}"
+    export APP_VERSION="$TAG"
+    ./scripts/create-dmg-background.sh
+    ./scripts/create-dmg.sh "$TAG"
+fi
 
 DMG="MacBrowser-${TAG}.dmg"
 if [ ! -f "$DMG" ]; then
@@ -47,6 +93,8 @@ else
 2. Open the DMG and drag **MacBrowser.app** to **Applications**
 3. Launch from Applications
 
+App version: ${TAG#v}
+
 ### Troubleshooting
 
 If macOS reports the app is damaged:
@@ -64,8 +112,10 @@ if gh release view "$TAG" >/dev/null 2>&1; then
 else
     gh release create "$TAG" "$DMG" \
         --title "MacBrowser ${TAG}" \
-        --notes-file "$TMP_NOTES"
+        --notes-file "$TMP_NOTES" \
+        --target "$(git rev-parse HEAD)"
 fi
 
 RELEASE_URL=$(gh release view "$TAG" --json url -q .url)
 echo "Published: ${RELEASE_URL}"
+echo "Recommended: git push origin ${TAG}  # keeps tag in sync for CI history"

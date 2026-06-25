@@ -6,10 +6,21 @@ OUTPUT_DIR="scripts/.dmg-resources"
 mkdir -p "$OUTPUT_DIR"
 BACKGROUND_PNG="$OUTPUT_DIR/dmg-background.png"
 
+ensure_python() {
+    if [ ! -x ".venv/bin/python3" ]; then
+        echo "Creating local Python venv (.venv)..."
+        python3 -m venv .venv
+        .venv/bin/pip install -q -r requirements.txt
+    fi
+    PYTHON=".venv/bin/python3"
+}
+
 if [ -x ".venv/bin/python3" ]; then
     PYTHON=".venv/bin/python3"
-else
+elif python3 -c "from PIL import Image" 2>/dev/null; then
     PYTHON="python3"
+else
+    ensure_python
 fi
 
 "$PYTHON" - "$BACKGROUND_PNG" <<'PYTHON'
@@ -18,7 +29,7 @@ import sys
 try:
     from PIL import Image, ImageDraw, ImageFont
 except ImportError:
-    print("Pillow is required. Install with: pip3 install pillow", file=sys.stderr)
+    print("Pillow is required. Run: python3 -m venv .venv && .venv/bin/pip install -r requirements.txt", file=sys.stderr)
     sys.exit(1)
 
 output_path = sys.argv[1]

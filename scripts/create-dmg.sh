@@ -2,16 +2,22 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+# shellcheck source=lib/version.sh
+source "$(dirname "$0")/lib/version.sh"
+
 VERSION="${1:-}"
 if [ -z "$VERSION" ]; then
-    echo "Usage: $0 <version>   (example: v0.3 or 0.3)" >&2
+    echo "Usage: $0 <version>   (example: v0.4 or 0.4)" >&2
     exit 1
 fi
-VERSION="${VERSION#v}"
+validate_tag "$VERSION"
+TAG="$(normalize_tag "$VERSION")"
+VERSION="${TAG#v}"
 
+export APP_VERSION="$TAG"
 ./scripts/build-app.sh
 
-DMG_NAME="MacBrowser-v${VERSION}.dmg"
+DMG_NAME="MacBrowser-${TAG}.dmg"
 BACKGROUND_SRC="scripts/.dmg-resources/dmg-background.png"
 TEMP_DIR=$(mktemp -d)
 STAGING_DIR="$TEMP_DIR/staging"

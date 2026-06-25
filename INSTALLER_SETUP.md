@@ -1,108 +1,47 @@
 # MacBrowser Installation & Logo Setup
 
-This guide explains how to create a professional DMG installer with custom logo for MacBrowser.
+## Step 1: Custom logo
 
-## Step 1: Create a Custom Logo
-
-Use the prompt in `LOGO_PROMPT.txt` to generate a premium logo via:
-
-- **ChatGPT with DALL-E** (free with Plus subscription)
-- **Midjourney** (Discord-based, high quality)
-- **Leonardo.AI** (free tier available)
-
-### Requirements:
-
-- Format: PNG, 1024×1024 pixels
-- Background: **Transparent** (important!)
-- Style: Modern, minimalist, premium
-- No overly bright or playful colors
-
-### After generating the logo:
-
-1. Save the PNG file as `MacBrowser-logo.png` in the project root
-2. Convert it to macOS ICNS format:
+Use `LOGO_PROMPT.txt` to generate a 1024×1024 PNG with transparent background.
 
 ```bash
 ./scripts/png-to-icns.sh MacBrowser-logo.png
-```
-
-3. Copy the resulting `.icns` file to the app resources:
-
-```bash
-cp MacBrowser-logo.icns resources/AppIcon.icns
-```
-
-4. Rebuild the app to apply the icon:
-
-```bash
+# writes resources/AppIcon.icns by default
 ./scripts/build-app.sh
 ```
 
-## Step 2: Create DMG Installer
-
-Once you have a logo (even a placeholder), create the DMG:
+## Step 2: DMG installer
 
 ```bash
-pip3 install pillow   # required for DMG background
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
 ./scripts/create-dmg-background.sh
-./scripts/create-dmg.sh v0.3
+./scripts/create-dmg.sh v0.4
 ```
 
-This produces `MacBrowser-v0.3.dmg` with:
+Produces `MacBrowser-v0.4.dmg`. DMG window layout requires Finder automation permission; the DMG is still created without it.
 
-- Drag-and-drop installation interface
-- Instructions for handling macOS quarantine warning
-- Professional layout with custom background (when Pillow is installed)
+## Step 3: Publish
 
-## Step 3: Publish via GitHub CLI
-
-All releases are published through `gh`:
+**Preferred (CI):**
 
 ```bash
-gh auth login
-./scripts/release.sh v0.3
+git tag v0.4 && git push origin v0.4
 ```
 
-The script will:
-
-1. Build the DMG background and installer
-2. Create a GitHub Release (or upload to an existing one)
-3. Attach `MacBrowser-v0.3.dmg` as a release asset
-
-### CI alternative
-
-Push a tag to trigger automated release:
+**Local:**
 
 ```bash
-git tag v0.3
-git push origin v0.3
+./scripts/release.sh v0.4
 ```
+
+`release.sh` refuses to run with uncommitted or unpushed changes.
 
 ## Troubleshooting
 
-### Pillow not installed
-
-The `create-dmg-background.sh` script uses Python with Pillow:
-
-```bash
-pip3 install pillow
-```
-
-### Icon not showing in Finder
-
-- Ensure `resources/AppIcon.icns` exists before running `./scripts/build-app.sh`
-- Clear Finder cache: `killall Finder`
-
-### DMG creation fails
-
-Some versions of macOS require `hdiutil` permissions. Run with:
-
-```bash
-sudo ./scripts/create-dmg.sh v0.3
-```
-
-## Next Steps
-
-- Add a custom color scheme in `resources/Info.plist`
-- Create a website (GitHub Pages) with screenshots
-- Releases are automated via `.github/workflows/release.yml`
+| Issue | Fix |
+|-------|-----|
+| Pillow missing | `python3 -m venv .venv && .venv/bin/pip install -r requirements.txt` |
+| Icon not visible | Ensure `resources/AppIcon.icns` exists, rebuild, `killall Finder` |
+| DMG layout skipped | System Settings → Privacy → Automation → allow Terminal → Finder |
+| App version shows `1.0` | Rebuild with `APP_VERSION=v0.4 ./scripts/build-app.sh` or use a tagged release |

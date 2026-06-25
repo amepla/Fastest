@@ -1,0 +1,22 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build binary
+        run: ./scripts/build.sh
+
+      - name: Build app bundle
+        run: APP_VERSION=ci ./scripts/build-app.sh
+
+      - name: Verify app bundle
+        run: test -x MacBrowser.app/Contents/MacOS/MacBrowser

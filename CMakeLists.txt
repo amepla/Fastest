@@ -23,7 +23,7 @@ target_compile_options(MacBrowser PRIVATE -fobjc-arc)
 set_target_properties(MacBrowser PROPERTIES
     MACOSX_BUNDLE_BUNDLE_NAME "MacBrowser"
     MACOSX_BUNDLE_GUI_IDENTIFIER "com.amepla.MacBrowser"
-    MACOSX_BUNDLE_BUNDLE_VERSION "1.0"
-    MACOSX_BUNDLE_SHORT_VERSION_STRING "1.0"
+    MACOSX_BUNDLE_BUNDLE_VERSION "0"
+    MACOSX_BUNDLE_SHORT_VERSION_STRING "0.0.0-dev"
     MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/resources/Info.plist"
 )
