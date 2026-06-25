@@ -1,0 +1,25 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# build outputs
+build/
+MacBrowser
+*.o
+*.obj
+*.dSYM/
+
+# CMake
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+*.cmake
+
+# Python
+.venv/
+
+# Editor
+.vscode/
+.idea/
