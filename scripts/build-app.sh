@@ -12,6 +12,8 @@ cat > "$CONTENTS/Info.plist" <<'EOF'
 <dict>
   <key>CFBundleExecutable</key>
   <string>MacBrowser</string>
+  <key>CFBundleIconFile</key>
+  <string>AppIcon</string>
   <key>CFBundleIdentifier</key>
   <string>com.amepla.MacBrowser</string>
   <key>CFBundleName</key>
@@ -33,5 +35,13 @@ cat > "$CONTENTS/Info.plist" <<'EOF'
 EOF
 chmod +x "$CONTENTS/MacOS/MacBrowser"
 touch "$CONTENTS/Resources/.keep"
+
+# Copy icon if it exists
+if [ -f "$CONTENTS/Resources/AppIcon.icns" ]; then
+    echo "Using custom icon"
+else
+    touch "$CONTENTS/Resources/AppIcon.icns"
+fi
+
 codesign --force --sign - "$APP" 2>/dev/null || true
 echo "Built $APP (signed)"
