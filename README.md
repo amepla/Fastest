@@ -42,6 +42,23 @@ The result will be `MacBrowser.app`. Open it in Finder or run it from Terminal:
 open MacBrowser.app
 ```
 
+## Troubleshooting: "MacBrowser.app is damaged"
+
+If you see "MacBrowser.app is damaged and can't be opened" when launching from Finder:
+
+1. This is macOS quarantine — the system flags downloaded apps for safety
+2. Remove the quarantine attribute:
+
+```bash
+xattr -d com.apple.quarantine MacBrowser.app
+```
+
+3. Then run it again:
+
+```bash
+open MacBrowser.app
+```
+
 ## Project layout
 
 - `src/main.mm` — application entry point
