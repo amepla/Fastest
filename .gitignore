@@ -1,5 +1,35 @@
-# Only user-facing files are published to GitHub.
-*
-!.gitignore
-!README.md
-!LICENSE
+# macOS
+.DS_Store
+
+# Build outputs
+build/
+MacBrowser
+MacBrowser.app
+*.dmg
+*.o
+*.dSYM/
+releases/
+
+# CMake
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# Local dev tooling (not published)
+.venv/
+scripts/.dmg-resources/
+scripts/create-dmg*.sh
+scripts/package-app.sh
+scripts/png-to-icns.sh
+scripts/release.sh
+.github/
+requirements.txt
+INSTALLER_SETUP.md
+LOGO_PROMPT.txt
+
+# Editor
+.vscode/
+.idea/
+.env
+.env.*
