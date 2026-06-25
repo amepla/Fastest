@@ -1,16 +1,12 @@
 #import "BrowserApp.h"
 #import <Cocoa/Cocoa.h>
 #import <WebKit/WebKit.h>
+#import <QuartzCore/QuartzCore.h>
 
-static NSString * const kSearchHost = @"duckduckgo.com";
-static NSString * const kStartPageURLString = @"https://duckduckgo.com/";
+static NSString * const kNewTabScheme = @"macbrowser";
 
 static NSColor *MBColorInk(void) {
     return [NSColor colorWithCalibratedRed:6.0 / 255.0 green:6.0 / 255.0 blue:6.0 / 255.0 alpha:1.0];
-}
-
-static NSColor *MBColorSurface(void) {
-    return [NSColor colorWithCalibratedRed:14.0 / 255.0 green:14.0 / 255.0 blue:14.0 / 255.0 alpha:0.92];
 }
 
 static NSColor *MBColorCream(void) {
@@ -21,22 +17,56 @@ static NSColor *MBColorCopper(void) {
     return [NSColor colorWithCalibratedRed:201.0 / 255.0 green:162.0 / 255.0 blue:122.0 / 255.0 alpha:1.0];
 }
 
-static NSColor *MBColorStone(void) {
-    return [NSColor colorWithCalibratedRed:154.0 / 255.0 green:143.0 / 255.0 blue:130.0 / 255.0 alpha:1.0];
-}
-
 static NSURL *MBSearchURL(NSString *query) {
     NSString *encoded = [query stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]];
     return [NSURL URLWithString:[NSString stringWithFormat:@"https://duckduckgo.com/?q=%@", encoded ?: @""]];
 }
 
-@interface BrowserWindowController : NSWindowController <WKNavigationDelegate, NSTextFieldDelegate, NSWindowDelegate>
+@interface MBToolbarButton : NSButton
+@end
+
+@implementation MBToolbarButton
+
+- (void)mouseEntered:(NSEvent *)event {
+    [super mouseEntered:event];
+    [NSAnimationContext runAnimationGroup:^(NSAnimationContext *context) {
+        context.duration = 0.12;
+        self.animator.alphaValue = 1.0;
+        self.animator.contentTintColor = MBColorCopper();
+    } completionHandler:nil];
+}
+
+- (void)mouseExited:(NSEvent *)event {
+    [super mouseExited:event];
+    [NSAnimationContext runAnimationGroup:^(NSAnimationContext *context) {
+        context.duration = 0.12;
+        self.animator.alphaValue = 0.82;
+        self.animator.contentTintColor = MBColorCream();
+    } completionHandler:nil];
+}
+
+- (void)viewDidMoveToWindow {
+    [super viewDidMoveToWindow];
+    if (self.window) {
+        NSTrackingArea *area = [[NSTrackingArea alloc] initWithRect:self.bounds
+                                                            options:NSTrackingMouseEnteredAndExited | NSTrackingActiveInKeyWindow | NSTrackingInVisibleRect
+                                                              owner:self
+                                                           userInfo:nil];
+        [self addTrackingArea:area];
+    }
+}
+
+@end
+
+@interface BrowserWindowController : NSWindowController <WKNavigationDelegate, WKScriptMessageHandler, NSSearchFieldDelegate, NSWindowDelegate>
 @property (nonatomic, strong) WKWebView *webView;
-@property (nonatomic, strong) NSTextField *addressField;
-@property (nonatomic, strong) NSButton *backButton;
-@property (nonatomic, strong) NSButton *forwardButton;
-@property (nonatomic, strong) NSButton *reloadButton;
-@property (nonatomic, strong) NSButton *homeButton;
+@property (nonatomic, strong) NSSearchField *addressField;
+@property (nonatomic, strong) MBToolbarButton *backButton;
+@property (nonatomic, strong) MBToolbarButton *forwardButton;
+@property (nonatomic, strong) MBToolbarButton *reloadButton;
+@property (nonatomic, strong) MBToolbarButton *homeButton;
+@property (nonatomic, assign) BOOL onNewTabPage;
+@property (nonatomic, strong) NSString *startPageMarkup;
 @end
 
 @implementation BrowserWindowController
@@ -64,8 +94,8 @@ static NSURL *MBSearchURL(NSString *query) {
 
     NSMenuItem *navMenuItem = [[NSMenuItem alloc] init];
     NSMenu *navMenu = [[NSMenu alloc] initWithTitle:@"Navigate"];
-    [navMenu addItemWithTitle:@"Start Page" action:@selector(goHome:) keyEquivalent:@"h"];
-    [[navMenu itemAtIndex:0] setKeyEquivalentModifierMask:NSEventModifierFlagCommand | NSEventModifierFlagShift];
+    [navMenu addItemWithTitle:@"New Tab" action:@selector(goHome:) keyEquivalent:@"t"];
+    [[navMenu itemAtIndex:0] setKeyEquivalentModifierMask:NSEventModifierFlagCommand];
     [navMenu addItemWithTitle:@"Back" action:@selector(goBack:) keyEquivalent:@"["];
     [navMenu addItemWithTitle:@"Forward" action:@selector(goForward:) keyEquivalent:@"]"];
     [navMenu addItemWithTitle:@"Reload" action:@selector(reloadPage:) keyEquivalent:@"r"];
@@ -78,17 +108,18 @@ static NSURL *MBSearchURL(NSString *query) {
 }
 
 - (NSImage *)symbolImage:(NSString *)name pointSize:(CGFloat)size {
-    NSImageSymbolConfiguration *config = [NSImageSymbolConfiguration configurationWithPointSize:size weight:NSFontWeightMedium];
+    NSImageSymbolConfiguration *config = [NSImageSymbolConfiguration configurationWithPointSize:size weight:NSFontWeightSemibold];
     NSImage *image = [NSImage imageWithSystemSymbolName:name accessibilityDescription:nil];
     return [image imageWithSymbolConfiguration:config];
 }
 
-- (NSButton *)makeSymbolButton:(NSString *)symbol toolTip:(NSString *)toolTip action:(SEL)action frame:(NSRect)frame inView:(NSView *)view {
-    NSButton *button = [[NSButton alloc] initWithFrame:frame];
-    button.image = [self symbolImage:symbol pointSize:15];
+- (MBToolbarButton *)makeToolbarButton:(NSString *)symbol toolTip:(NSString *)toolTip action:(SEL)action frame:(NSRect)frame inView:(NSView *)view {
+    MBToolbarButton *button = [[MBToolbarButton alloc] initWithFrame:frame];
+    button.image = [self symbolImage:symbol pointSize:14];
     button.imagePosition = NSImageOnly;
-    button.bezelStyle = NSBezelStyleTexturedRounded;
+    button.bezelStyle = NSBezelStyleRegularSquare;
     button.bordered = NO;
+    button.alphaValue = 0.82;
     button.contentTintColor = MBColorCream();
     button.toolTip = toolTip;
     button.target = self;
@@ -97,79 +128,71 @@ static NSURL *MBSearchURL(NSString *query) {
     return button;
 }
 
-- (BOOL)isOnStartPage {
-    NSURL *url = self.webView.URL;
-    if (!url) {
-        return NO;
+- (NSString *)loadNewTabHTML {
+    NSBundle *bundle = [NSBundle mainBundle];
+    NSString *path = [bundle pathForResource:@"newtab" ofType:@"html"];
+    if (path) {
+        NSString *html = [NSString stringWithContentsOfFile:path encoding:NSUTF8StringEncoding error:nil];
+        if (html.length > 0) {
+            return html;
+        }
     }
-    NSString *host = url.host.lowercaseString;
-    if (![host isEqualToString:kSearchHost]) {
-        return NO;
+
+    NSString *devPath = [[[NSFileManager defaultManager] currentDirectoryPath] stringByAppendingPathComponent:@"resources/newtab.html"];
+    if ([[NSFileManager defaultManager] fileExistsAtPath:devPath]) {
+        return [NSString stringWithContentsOfFile:devPath encoding:NSUTF8StringEncoding error:nil] ?: @"";
     }
-    NSString *path = url.path.length > 0 ? url.path : @"/";
-    return [path isEqualToString:@"/"] && (url.query.length == 0);
+
+    return @"<!DOCTYPE html><html><body style='background:#060606;color:#f4efe6;font:16px -apple-system,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh'><form id=f><input id=q style='width:320px;padding:12px;border-radius:10px;border:1px solid #333;background:#111;color:#fff' placeholder='Search'/></form><script>f.onsubmit=e=>{e.preventDefault();const v=q.value.trim();if(v)webkit.messageHandlers.search.postMessage(v)}</script></body></html>";
 }
 
 - (void)setupUI {
     NSWindow *window = self.window;
     NSView *contentView = window.contentView;
     window.backgroundColor = MBColorInk();
-    window.titlebarAppearsTransparent = YES;
-    window.styleMask |= NSWindowStyleMaskFullSizeContentView;
     window.delegate = self;
-    [window setTitle:@"MacBrowser"];
+    window.title = @"MacBrowser";
+    window.movableByWindowBackground = NO;
     [window center];
 
-    CGFloat toolbarHeight = 52;
-    NSVisualEffectView *toolbar = [[NSVisualEffectView alloc] initWithFrame:NSMakeRect(0, contentView.bounds.size.height - toolbarHeight, contentView.bounds.size.width, toolbarHeight)];
-    toolbar.material = NSVisualEffectMaterialHUDWindow;
-    toolbar.blendingMode = NSVisualEffectBlendingModeWithinWindow;
-    toolbar.state = NSVisualEffectStateActive;
+    self.startPageMarkup = [self loadNewTabHTML];
+
+    CGFloat toolbarHeight = 48;
+    NSView *toolbar = [[NSView alloc] initWithFrame:NSMakeRect(0, contentView.bounds.size.height - toolbarHeight, contentView.bounds.size.width, toolbarHeight)];
     toolbar.wantsLayer = YES;
-    toolbar.layer.backgroundColor = [MBColorSurface() CGColor];
+    toolbar.layer.backgroundColor = [NSColor colorWithCalibratedWhite:0.08 alpha:1.0].CGColor;
     toolbar.autoresizingMask = NSViewWidthSizable | NSViewMinYMargin;
     [contentView addSubview:toolbar];
 
-    NSView *accentLine = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, toolbar.bounds.size.width, 1)];
-    accentLine.wantsLayer = YES;
-    accentLine.layer.backgroundColor = [MBColorCopper() colorWithAlphaComponent:0.35].CGColor;
-    accentLine.autoresizingMask = NSViewWidthSizable | NSViewMaxYMargin;
-    [toolbar addSubview:accentLine];
+    NSBox *separator = [[NSBox alloc] initWithFrame:NSMakeRect(0, 0, toolbar.bounds.size.width, 1)];
+    separator.boxType = NSBoxSeparator;
+    separator.borderColor = [MBColorCopper() colorWithAlphaComponent:0.2];
+    separator.autoresizingMask = NSViewWidthSizable | NSViewMaxYMargin;
+    [toolbar addSubview:separator];
 
-    CGFloat control = 32;
+    CGFloat control = 30;
     CGFloat y = (toolbarHeight - control) / 2.0;
-    CGFloat x = 12;
-    CGFloat gap = 4;
+    CGFloat x = 10;
 
-    self.homeButton = [self makeSymbolButton:@"house.fill" toolTip:@"Start page (DuckDuckGo)" action:@selector(goHome:) frame:NSMakeRect(x, y, control, control) inView:toolbar];
-    x += control + gap;
+    self.homeButton = [self makeToolbarButton:@"house.fill" toolTip:@"New tab" action:@selector(goHome:) frame:NSMakeRect(x, y, control, control) inView:toolbar];
+    x += control + 2;
+    self.backButton = [self makeToolbarButton:@"chevron.left" toolTip:@"Back" action:@selector(goBack:) frame:NSMakeRect(x, y, control, control) inView:toolbar];
+    x += control + 2;
+    self.forwardButton = [self makeToolbarButton:@"chevron.right" toolTip:@"Forward" action:@selector(goForward:) frame:NSMakeRect(x, y, control, control) inView:toolbar];
+    x += control + 2;
+    self.reloadButton = [self makeToolbarButton:@"arrow.clockwise" toolTip:@"Reload" action:@selector(reloadPage:) frame:NSMakeRect(x, y, control, control) inView:toolbar];
+    x += control + 8;
 
-    self.backButton = [self makeSymbolButton:@"chevron.left" toolTip:@"Back" action:@selector(goBack:) frame:NSMakeRect(x, y, control, control) inView:toolbar];
-    x += control + gap;
-
-    self.forwardButton = [self makeSymbolButton:@"chevron.right" toolTip:@"Forward" action:@selector(goForward:) frame:NSMakeRect(x, y, control, control) inView:toolbar];
-    x += control + gap;
-
-    self.reloadButton = [self makeSymbolButton:@"arrow.clockwise" toolTip:@"Reload" action:@selector(reloadPage:) frame:NSMakeRect(x, y, control, control) inView:toolbar];
-    x += control + 10;
-
-    CGFloat fieldW = toolbar.bounds.size.width - x - 12;
-    self.addressField = [[NSTextField alloc] initWithFrame:NSMakeRect(x, y, fieldW, control)];
+    self.addressField = [[NSSearchField alloc] initWithFrame:NSMakeRect(x, y, toolbar.bounds.size.width - x - 10, control)];
     self.addressField.autoresizingMask = NSViewWidthSizable;
-    self.addressField.placeholderAttributedString = [[NSAttributedString alloc]
-        initWithString:@"Search DuckDuckGo or enter address"
-            attributes:@{
-                NSForegroundColorAttributeName: MBColorStone(),
-                NSFontAttributeName: [NSFont systemFontOfSize:13 weight:NSFontWeightRegular]
-            }];
+    self.addressField.placeholderString = @"Search or enter address";
     self.addressField.font = [NSFont systemFontOfSize:13 weight:NSFontWeightRegular];
-    self.addressField.drawsBackground = YES;
-    self.addressField.backgroundColor = MBColorInk();
-    self.addressField.textColor = MBColorCream();
-    self.addressField.bezeled = YES;
-    self.addressField.bezelStyle = NSTextFieldRoundedBezel;
-    self.addressField.focusRingType = NSFocusRingTypeExterior;
     self.addressField.delegate = self;
+    self.addressField.sendsSearchStringImmediately = NO;
+    self.addressField.sendsWholeSearchString = YES;
+    self.addressField.target = self;
+    self.addressField.action = @selector(addressBarAction:);
+    self.addressField.focusRingType = NSFocusRingTypeExterior;
     [toolbar addSubview:self.addressField];
 
     NSRect webFrame = NSMakeRect(0, 0, contentView.bounds.size.width, contentView.bounds.size.height - toolbarHeight);
@@ -177,16 +200,23 @@ static NSURL *MBSearchURL(NSString *query) {
     WKWebpagePreferences *preferences = [[WKWebpagePreferences alloc] init];
     preferences.allowsContentJavaScript = YES;
     config.defaultWebpagePreferences = preferences;
+    config.mediaTypesRequiringUserActionForPlayback = WKAudiovisualMediaTypeAll;
+    [config.userContentController addScriptMessageHandler:self name:@"search"];
+
     self.webView = [[WKWebView alloc] initWithFrame:webFrame configuration:config];
     self.webView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
     self.webView.navigationDelegate = self;
     self.webView.allowsBackForwardNavigationGestures = YES;
+    self.webView.allowsLinkPreview = YES;
     self.webView.underPageBackgroundColor = MBColorInk();
     [contentView addSubview:self.webView];
 
     [window makeKeyAndOrderFront:nil];
     [self goHome:nil];
-    [self focusAddressBar:nil];
+}
+
+- (void)addressBarAction:(id)sender {
+    [self loadAddress:self.addressField.stringValue];
 }
 
 - (void)focusAddressBar:(id)sender {
@@ -195,7 +225,7 @@ static NSURL *MBSearchURL(NSString *query) {
 }
 
 - (BOOL)control:(NSControl *)control textView:(NSTextView *)textView doCommandBySelector:(SEL)commandSelector {
-    if (commandSelector == @selector(insertNewline:)) {
+    if (control == self.addressField && commandSelector == @selector(insertNewline:)) {
         [self loadAddress:self.addressField.stringValue];
         return YES;
     }
@@ -216,13 +246,25 @@ static NSURL *MBSearchURL(NSString *query) {
 }
 
 - (void)updateNavigationButtons {
+    if (self.onNewTabPage) {
+        self.backButton.enabled = NO;
+        self.forwardButton.enabled = NO;
+        return;
+    }
     self.backButton.enabled = self.webView.canGoBack;
     self.forwardButton.enabled = self.webView.canGoForward;
 }
 
+- (void)showNewTabPage {
+    self.onNewTabPage = YES;
+    NSURL *baseURL = [NSURL URLWithString:[NSString stringWithFormat:@"%@://newtab/", kNewTabScheme]];
+    [self.webView loadHTMLString:self.startPageMarkup baseURL:baseURL];
+    self.addressField.stringValue = @"";
+    [self updateNavigationButtons];
+}
+
 - (void)goHome:(id)sender {
-    NSURLRequest *request = [NSURLRequest requestWithURL:[NSURL URLWithString:kStartPageURLString]];
-    [self.webView loadRequest:request];
+    [self showNewTabPage];
 }
 
 - (void)loadAddress:(NSString *)address {
@@ -250,6 +292,7 @@ static NSURL *MBSearchURL(NSString *query) {
         return;
     }
 
+    self.onNewTabPage = NO;
     [self.webView loadRequest:[NSURLRequest requestWithURL:url]];
 }
 
@@ -266,14 +309,27 @@ static NSURL *MBSearchURL(NSString *query) {
 }
 
 - (void)reloadPage:(id)sender {
+    if (self.onNewTabPage) {
+        [self showNewTabPage];
+        return;
+    }
     [self.webView reload];
 }
 
+- (void)userContentController:(WKUserContentController *)userContentController didReceiveScriptMessage:(WKScriptMessage *)message {
+    if ([message.name isEqualToString:@"search"] && [message.body isKindOfClass:[NSString class]]) {
+        [self loadAddress:(NSString *)message.body];
+    }
+}
+
 - (void)webView:(WKWebView *)webView didFinishNavigation:(WKNavigation *)navigation {
-    if ([self isOnStartPage]) {
+    NSURL *url = webView.URL;
+    if (self.onNewTabPage || [url.scheme isEqualToString:kNewTabScheme]) {
+        self.onNewTabPage = YES;
         self.addressField.stringValue = @"";
     } else {
-        self.addressField.stringValue = webView.URL.absoluteString ?: @"";
+        self.onNewTabPage = NO;
+        self.addressField.stringValue = url.absoluteString ?: @"";
     }
     [self updateNavigationButtons];
 }
@@ -285,7 +341,17 @@ static NSURL *MBSearchURL(NSString *query) {
     [self updateNavigationButtons];
 }
 
+- (void)webView:(WKWebView *)webView decidePolicyForNavigationAction:(WKNavigationAction *)navigationAction decisionHandler:(void (^)(WKNavigationActionPolicy))decisionHandler {
+    NSURL *url = navigationAction.request.URL;
+    if ([url.scheme isEqualToString:kNewTabScheme]) {
+        decisionHandler(WKNavigationActionPolicyAllow);
+        return;
+    }
+    decisionHandler(WKNavigationActionPolicyAllow);
+}
+
 - (void)windowWillClose:(NSNotification *)notification {
+    [self.webView.configuration.userContentController removeScriptMessageHandlerForName:@"search"];
     [NSApp terminate:nil];
 }
 

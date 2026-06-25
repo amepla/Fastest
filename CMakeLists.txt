@@ -16,6 +16,7 @@ target_link_libraries(MacBrowser
     PRIVATE
     "-framework Cocoa"
     "-framework WebKit"
+    "-framework QuartzCore"
 )
 
 target_compile_options(MacBrowser PRIVATE -fobjc-arc)
@@ -26,4 +27,10 @@ set_target_properties(MacBrowser PROPERTIES
     MACOSX_BUNDLE_BUNDLE_VERSION "0"
     MACOSX_BUNDLE_SHORT_VERSION_STRING "0.0.0-dev"
     MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/resources/Info.plist"
+)
+
+add_custom_command(TARGET MacBrowser POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_CURRENT_SOURCE_DIR}/resources/newtab.html"
+        "$<TARGET_BUNDLE_DIR:MacBrowser>/Contents/Resources/newtab.html"
 )

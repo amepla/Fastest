@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New Tab</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: #060606;
+      color: #f4efe6;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+    }
+    main {
+      min-height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+    .panel {
+      width: min(520px, 100%);
+      animation: fadeIn 0.35s ease-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .panel { animation: none; }
+    }
+    h1 {
+      margin: 0 0 1.5rem;
+      font-size: 1.75rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      text-align: center;
+      color: #f4efe6;
+    }
+    form { margin: 0; }
+    .search-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.35rem 0.35rem 0.35rem 1rem;
+      border-radius: 14px;
+      background: #101010;
+      border: 1px solid rgba(201, 162, 122, 0.22);
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .search-wrap:focus-within {
+      border-color: rgba(201, 162, 122, 0.55);
+      box-shadow: 0 0 0 4px rgba(201, 162, 122, 0.12);
+    }
+    input {
+      flex: 1;
+      border: none;
+      outline: none;
+      background: transparent;
+      color: #f4efe6;
+      font-size: 1.05rem;
+      line-height: 1.4;
+      padding: 0.65rem 0;
+    }
+    input::placeholder { color: #9a8f82; }
+    button {
+      border: none;
+      border-radius: 10px;
+      padding: 0.6rem 1.1rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      color: #060606;
+      background: #c9a27a;
+      transition: transform 0.15s ease, filter 0.15s ease;
+    }
+    button:hover { filter: brightness(1.08); transform: scale(1.02); }
+    button:active { transform: scale(0.98); }
+    p.hint {
+      margin: 1rem 0 0;
+      text-align: center;
+      font-size: 0.85rem;
+      color: #9a8f82;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="panel">
+      <h1>Search the web</h1>
+      <form id="search-form">
+        <div class="search-wrap">
+          <input id="q" type="search" placeholder="Search or enter address" autocomplete="off" spellcheck="false" autofocus />
+          <button type="submit">Go</button>
+        </div>
+      </form>
+      <p class="hint">Powered by DuckDuckGo · ⌘L to focus here</p>
+    </div>
+  </main>
+  <script>
+    document.getElementById("search-form").addEventListener("submit", function (e) {
+      e.preventDefault();
+      var q = document.getElementById("q").value.trim();
+      if (q) {
+        window.webkit.messageHandlers.search.postMessage(q);
+      }
+    });
+  </script>
+</body>
+</html>

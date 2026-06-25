@@ -23,7 +23,7 @@ BUILD_NUMBER="${BUILD_NUMBER:-$(git rev-list --count HEAD 2>/dev/null || echo 0)
 mkdir -p "$CONTENTS/MacOS" "$RESOURCES"
 clang++ -std=c++17 -ObjC++ -fobjc-arc -Wall -Wextra \
     src/main.mm src/BrowserApp.mm \
-    -framework Cocoa -framework WebKit \
+    -framework Cocoa -framework WebKit -framework QuartzCore \
     -o "$CONTENTS/MacOS/MacBrowser"
 
 ICON_PLIST_ENTRY=""
@@ -32,6 +32,10 @@ if [ -f "$ICON_SOURCE" ]; then
     ICON_PLIST_ENTRY="  <key>CFBundleIconFile</key>
   <string>AppIcon</string>
 "
+fi
+
+if [ -f "resources/newtab.html" ]; then
+    cp "resources/newtab.html" "$RESOURCES/newtab.html"
 fi
 
 cat > "$CONTENTS/Info.plist" <<EOF
