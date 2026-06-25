@@ -23,3 +23,5 @@ Makefile
 # Editor
 .vscode/
 .idea/
+.env
+.env.*
