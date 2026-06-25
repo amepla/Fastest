@@ -41,10 +41,10 @@ tell application "Finder"
     set statusbar visible of container window to false
     set bounds of container window to {100, 100, 650, 500}
     set arrangement of icon view of container window to arranged by name
-    
+
     set position of item "MacBrowser.app" of container window to {120, 150}
     set position of item "Applications" of container window to {420, 150}
-    
+
     set background picture of icon view options of container window to file ".background/background.png"
     delay 1
     close container window

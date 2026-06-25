@@ -5,11 +5,13 @@ This guide explains how to create a professional DMG installer with custom logo 
 ## Step 1: Create a Custom Logo
 
 Use the prompt in `LOGO_PROMPT.txt` to generate a premium logo via:
+
 - **ChatGPT with DALL-E** (free with Plus subscription)
 - **Midjourney** (Discord-based, high quality)
 - **Leonardo.AI** (free tier available)
 
 ### Requirements:
+
 - Format: PNG, 1024×1024 pixels
 - Background: **Transparent** (important!)
 - Style: Modern, minimalist, premium
@@ -46,6 +48,7 @@ Once you have a logo (even a placeholder), create the DMG:
 ```
 
 This produces `MacBrowser-v0.2.dmg` with:
+
 - Drag-and-drop installation interface
 - Instructions for handling macOS quarantine warning
 - Professional layout with custom background
@@ -59,6 +62,7 @@ gh release upload v0.2 MacBrowser-v0.2.dmg
 ```
 
 Users can now:
+
 1. Download the `.dmg` file
 2. Open it and drag `MacBrowser.app` to `Applications`
 3. If they see "damaged" error, they'll see clear instructions in the DMG
@@ -66,6 +70,7 @@ Users can now:
 ## Troubleshooting
 
 ### "ImageMagick not found"
+
 The `create-dmg-background.sh` script uses Python with PIL (Pillow). Install it:
 
 ```bash
@@ -73,10 +78,12 @@ pip3 install pillow
 ```
 
 ### Icon not showing in Finder
+
 - Ensure the `.icns` file is copied to `MacBrowser.app/Contents/Resources/AppIcon.icns`
 - Rebuild the app and clear Finder cache: `killall Finder`
 
 ### DMG creation fails
+
 Some versions of macOS require `hdiutil` permissions. Run with:
 
 ```bash

@@ -2,7 +2,7 @@ ChatGPT Prompt for MacBrowser Logo Generation:
 
 ---
 
-Create a modern, minimalist logo for "MacBrowser" — a premium, native macOS web browser application. 
+Create a modern, minimalist logo for "MacBrowser" — a premium, native macOS web browser application.
 
 Requirements:
 - Design style: Clean, contemporary, premium aesthetic (similar to Safari, Arc, or modern Apple app design)
