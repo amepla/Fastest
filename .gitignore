@@ -1,31 +1,5 @@
-# macOS
-.DS_Store
-.AppleDouble
-.LSOverride
-
-# build outputs
-build/
-MacBrowser
-*.o
-*.obj
-*.dSYM/
-scripts/.dmg-resources/
-
-# CMake
-CMakeFiles/
-CMakeCache.txt
-cmake_install.cmake
-Makefile
-*.cmake
-
-# Python
-.venv/
-
-# Editor
-.vscode/
-.idea/
-.env
-.env.*
-MacBrowser.app
-releases/
-*.dmg
+# Only user-facing files are published to GitHub.
+*
+!.gitignore
+!README.md
+!LICENSE
