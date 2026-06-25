@@ -15,7 +15,7 @@ MacBrowser is a minimal native macOS browser prototype implemented with Objectiv
 Open a terminal in the project directory and run:
 
 ```bash
-cd "/Users/hyoma/Documents/mac browser"
+cd "$(pwd)"
 ./scripts/build.sh
 # or directly:
 clang++ -std=c++17 -ObjC++ src/main.mm src/BrowserApp.mm -framework Cocoa -framework WebKit -o MacBrowser
@@ -29,10 +29,10 @@ Run the binary:
 
 ## Build a macOS app bundle
 
-To make the app launchable by double-clicking its icon, build the `.app` bundle:
+To make the app launchable by double-clicking its icon, build the `.app` bundle from the project root:
 
 ```bash
-cd "/Users/hyoma/Documents/mac browser"
+cd "$(pwd)"
 ./scripts/build-app.sh
 ```
 
