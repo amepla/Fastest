@@ -25,3 +25,4 @@ Makefile
 .idea/
 .env
 .env.*
+MacBrowser.app
