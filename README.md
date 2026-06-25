@@ -10,6 +10,17 @@ MacBrowser is a minimal native macOS browser prototype implemented with Objectiv
 - Built-in styled home page (landing) for presentation and testing
 - JavaScript enabled in `WKWebView`, back/forward gestures supported
 
+## Installation (Recommended for Users)
+
+The easiest way to install MacBrowser is via the DMG installer:
+
+1. Download `MacBrowser-v0.2.dmg` from [Releases](https://github.com/amepla/Fastest/releases)
+2. Open the DMG file
+3. Drag `MacBrowser.app` to the `Applications` folder
+4. Open `Applications` → `MacBrowser` to launch
+
+If you see "MacBrowser.app is damaged" error, see [Troubleshooting](#troubleshooting-macbrowserapp-is-damaged) below.
+
 ## Quick start (build & run)
 
 Open a terminal in the project directory and run:
